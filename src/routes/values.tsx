@@ -54,8 +54,8 @@ function ValuesPage() {
             We listen. We care. We respect.
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            These aren't just words on a wall — they shape every conversation,
-            every decision, every interaction.
+            These aren't just words on a wall — they shape every conversation, every decision, every
+            interaction.
           </p>
         </div>
       </section>
@@ -78,9 +78,7 @@ function ValuesPage() {
               <div className="flex-1 text-center md:text-left space-y-3">
                 <h2 className="text-3xl font-bold">{v.title}</h2>
                 <p className="text-lg text-muted-foreground">{v.desc}</p>
-                <p className="text-muted-foreground/80 leading-relaxed">
-                  {v.detail}
-                </p>
+                <p className="text-muted-foreground/80 leading-relaxed">{v.detail}</p>
               </div>
             </div>
           ))}
@@ -90,9 +88,7 @@ function ValuesPage() {
       {/* Principles strip */}
       <section className="bg-card py-16">
         <div className="container mx-auto px-6 max-w-4xl">
-          <h2 className="text-2xl font-bold text-center mb-10">
-            Guiding Principles
-          </h2>
+          <h2 className="text-2xl font-bold text-center mb-10">Guiding Principles</h2>
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
             {[
               "Compassion first",
@@ -114,9 +110,7 @@ function ValuesPage() {
       {/* CTA */}
       <section className="bg-gradient-brand py-16 text-primary-foreground text-center">
         <div className="container mx-auto px-6 space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Experience our values first-hand
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Experience our values first-hand</h2>
           <p className="text-lg opacity-90 max-w-xl mx-auto">
             Reach out and feel the difference compassionate care makes.
           </p>

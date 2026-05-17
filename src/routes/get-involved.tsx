@@ -35,8 +35,7 @@ function GetInvolvedPage() {
         <div className="container mx-auto px-6 text-center max-w-3xl relative space-y-4">
           <p className="font-script text-primary text-3xl">Get involved</p>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Together we make{" "}
-            <span className="text-gradient-brand">listening louder</span>
+            Together we make <span className="text-gradient-brand">listening louder</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Your time, your generosity, your voice — they all make a difference.
@@ -53,13 +52,11 @@ function GetInvolvedPage() {
                 <DollarSign className="h-7 w-7" />
               </div>
               <h2 className="text-2xl md:text-3xl font-bold">
-                Fund a conversation that{" "}
-                <span className="text-gradient-brand">changes a life</span>
+                Fund a conversation that <span className="text-gradient-brand">changes a life</span>
               </h2>
               <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
-                Every ₹500 funds one free counseling session. Every ₹2,000 keeps
-                our helpline running for a full day. Your generosity is someone's
-                lifeline.
+                Every ₹500 funds one free counseling session. Every ₹2,000 keeps our helpline
+                running for a full day. Your generosity is someone's lifeline.
               </p>
               <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
                 {[
@@ -71,12 +68,8 @@ function GetInvolvedPage() {
                     key={d.amount}
                     className="rounded-xl border border-border bg-background p-3 animate-count-up"
                   >
-                    <div className="text-xl font-bold text-gradient-brand">
-                      {d.amount}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {d.impact}
-                    </div>
+                    <div className="text-xl font-bold text-gradient-brand">{d.amount}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{d.impact}</div>
                   </div>
                 ))}
               </div>
@@ -95,8 +88,8 @@ function GetInvolvedPage() {
                 </a>
               </Button>
               <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
-                <Shield className="h-3.5 w-3.5" /> 256-bit encrypted · Powered
-                by Stripe · Tax-deductible
+                <Shield className="h-3.5 w-3.5" /> 256-bit encrypted · Powered by Stripe ·
+                Tax-deductible
               </p>
             </div>
           </div>
@@ -130,9 +123,7 @@ function GetInvolvedPage() {
               >
                 <o.icon className="h-10 w-10 text-accent mb-5" />
                 <h3 className="text-2xl font-semibold mb-3">{o.title}</h3>
-                <p className="text-muted-foreground mb-6 leading-relaxed">
-                  {o.desc}
-                </p>
+                <p className="text-muted-foreground mb-6 leading-relaxed">{o.desc}</p>
                 <Button
                   variant="outline"
                   size="lg"
@@ -152,9 +143,7 @@ function GetInvolvedPage() {
       {/* Impact */}
       <section className="bg-gradient-brand py-16 text-primary-foreground text-center">
         <div className="container mx-auto px-6 max-w-3xl space-y-4">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Your support in action
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Your support in action</h2>
           <div className="grid grid-cols-3 gap-6 pt-4">
             {[
               { n: "₹12L+", l: "Raised this year" },

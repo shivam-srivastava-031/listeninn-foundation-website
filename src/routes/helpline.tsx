@@ -82,12 +82,9 @@ function HelplinePage() {
         <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
         <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-accent/15 blur-3xl" />
         <div className="container mx-auto px-6 text-center max-w-3xl relative space-y-4">
-          <p className="font-script text-primary text-3xl">
-            Help & resources
-          </p>
+          <p className="font-script text-primary text-3xl">Help & resources</p>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Support is{" "}
-            <span className="text-gradient-brand">one call away</span>
+            Support is <span className="text-gradient-brand">one call away</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Whether it's 3 PM or 3 AM — we're here. Always.
@@ -114,8 +111,7 @@ function HelplinePage() {
               >
                 {copied ? (
                   <>
-                    <Check className="h-4 w-4 text-accent animate-copy-pop" />{" "}
-                    Copied
+                    <Check className="h-4 w-4 text-accent animate-copy-pop" /> Copied
                   </>
                 ) : (
                   <>
@@ -125,8 +121,7 @@ function HelplinePage() {
               </button>
             </div>
             <p className="text-xs text-muted-foreground">
-              If you are in immediate danger, please call your local emergency
-              number first.
+              If you are in immediate danger, please call your local emergency number first.
             </p>
           </div>
         </div>
@@ -148,24 +143,20 @@ function HelplinePage() {
                   <r.icon className="h-5 w-5" />
                 </div>
                 <h3 className="text-lg font-semibold mb-1">{r.title}</h3>
-                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                  {r.desc}
-                </p>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">{r.desc}</p>
                 {r.link.startsWith("/") ? (
                   <Link
                     to={r.link}
                     className="inline-flex items-center text-sm font-medium text-primary hover:text-accent transition-colors"
                   >
-                    {r.linkText}{" "}
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    {r.linkText} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                   </Link>
                 ) : (
                   <a
                     href={r.link}
                     className="inline-flex items-center text-sm font-medium text-primary hover:text-accent transition-colors"
                   >
-                    {r.linkText}{" "}
-                    <ArrowRight className="ml-1 h-3.5 w-3.5" />
+                    {r.linkText} <ArrowRight className="ml-1 h-3.5 w-3.5" />
                   </a>
                 )}
               </div>

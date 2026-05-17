@@ -71,12 +71,10 @@ function FAQPage() {
         <div className="pointer-events-none absolute -top-24 -right-24 h-96 w-96 rounded-full bg-primary/20 blur-3xl" />
         <div className="container mx-auto px-6 text-center max-w-3xl relative space-y-4">
           <p className="font-script text-primary text-3xl">Questions</p>
-          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Frequently asked
-          </h1>
+          <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">Frequently asked</h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
-            We've gathered the most common questions. If yours isn't here, don't
-            hesitate to reach out.
+            We've gathered the most common questions. If yours isn't here, don't hesitate to reach
+            out.
           </p>
         </div>
       </section>
@@ -106,12 +104,9 @@ function FAQPage() {
       {/* CTA */}
       <section className="bg-card py-16">
         <div className="container mx-auto px-6 text-center space-y-6 max-w-2xl">
-          <h2 className="text-3xl font-bold tracking-tight">
-            Still have questions?
-          </h2>
+          <h2 className="text-3xl font-bold tracking-tight">Still have questions?</h2>
           <p className="text-muted-foreground text-lg">
-            We're happy to help. Reach out and we'll get back to you within 24
-            hours.
+            We're happy to help. Reach out and we'll get back to you within 24 hours.
           </p>
           <Button
             size="lg"

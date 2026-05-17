@@ -63,9 +63,7 @@ export function Header() {
           />
           <span className="hidden sm:flex flex-col leading-tight">
             <span className="font-bold text-lg text-accent">listeninn</span>
-            <span className="text-[10px] tracking-[0.25em] text-muted-foreground">
-              FOUNDATION
-            </span>
+            <span className="text-[10px] tracking-[0.25em] text-muted-foreground">FOUNDATION</span>
           </span>
         </Link>
         <nav className="hidden md:flex items-center gap-7">
@@ -98,11 +96,7 @@ export function Header() {
             onClick={() => setMobileOpen(!mobileOpen)}
             aria-label="Toggle menu"
           >
-            {mobileOpen ? (
-              <X className="h-5 w-5" />
-            ) : (
-              <Menu className="h-5 w-5" />
-            )}
+            {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
           </button>
         </div>
       </div>
@@ -136,44 +130,23 @@ export function Footer() {
     <footer className="bg-background py-12 border-t border-border/60">
       <div className="container mx-auto px-6 grid md:grid-cols-3 gap-8 items-center">
         <div className="flex items-center gap-3">
-          <img
-            src={logo}
-            alt=""
-            width={40}
-            height={40}
-            className="h-10 w-10 object-contain"
-          />
+          <img src={logo} alt="" width={40} height={40} className="h-10 w-10 object-contain" />
           <div className="leading-tight">
             <div className="font-bold text-accent">listeninn</div>
-            <div className="text-[10px] tracking-[0.25em] text-muted-foreground">
-              FOUNDATION
-            </div>
+            <div className="text-[10px] tracking-[0.25em] text-muted-foreground">FOUNDATION</div>
           </div>
         </div>
         <p className="text-center text-sm text-muted-foreground">
-          © {new Date().getFullYear()} ListenInn Foundation · We listen. We
-          care. We respect.
+          © {new Date().getFullYear()} ListenInn Foundation · We listen. We care. We respect.
         </p>
         <div className="flex md:justify-end gap-4 text-muted-foreground">
-          <a
-            href="#"
-            aria-label="Instagram"
-            className="hover:text-primary transition-colors"
-          >
+          <a href="#" aria-label="Instagram" className="hover:text-primary transition-colors">
             <Instagram className="h-5 w-5" />
           </a>
-          <a
-            href="#"
-            aria-label="Facebook"
-            className="hover:text-primary transition-colors"
-          >
+          <a href="#" aria-label="Facebook" className="hover:text-primary transition-colors">
             <Facebook className="h-5 w-5" />
           </a>
-          <a
-            href="#"
-            aria-label="Twitter"
-            className="hover:text-primary transition-colors"
-          >
+          <a href="#" aria-label="Twitter" className="hover:text-primary transition-colors">
             <Twitter className="h-5 w-5" />
           </a>
         </div>

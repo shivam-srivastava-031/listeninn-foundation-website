@@ -1,11 +1,6 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
-import {
-  Outlet,
-  Link,
-  createRootRouteWithContext,
-  useRouter,
-} from "@tanstack/react-router";
+import { Outlet, Link, createRootRouteWithContext, useRouter, ScrollRestoration } from "@tanstack/react-router";
 
 function NotFoundComponent() {
   return (
@@ -75,6 +70,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <ScrollRestoration />
       <Outlet />
       <Toaster position="bottom-right" richColors />
     </QueryClientProvider>

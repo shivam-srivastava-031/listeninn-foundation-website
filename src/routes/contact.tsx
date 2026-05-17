@@ -37,8 +37,7 @@ function ContactForm() {
     if (!name || name.length < 2) errs.from_name = "Please enter your name.";
     if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
       errs.reply_to = "Please enter a valid email.";
-    if (!message || message.length < 10)
-      errs.message = "Message must be at least 10 characters.";
+    if (!message || message.length < 10) errs.message = "Message must be at least 10 characters.";
     return errs;
   };
 
@@ -63,9 +62,7 @@ function ContactForm() {
       formRef.current.reset();
       setErrors({});
     } catch {
-      toast.error(
-        "Something went wrong. Please try again or call our helpline.",
-      );
+      toast.error("Something went wrong. Please try again or call our helpline.");
     } finally {
       setSending(false);
     }
@@ -93,9 +90,7 @@ function ContactForm() {
           placeholder="Jane Doe"
           className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40"
         />
-        {errors.from_name && (
-          <p className="text-xs text-red-200">{errors.from_name}</p>
-        )}
+        {errors.from_name && <p className="text-xs text-red-200">{errors.from_name}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -109,9 +104,7 @@ function ContactForm() {
           placeholder="you@example.com"
           className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40"
         />
-        {errors.reply_to && (
-          <p className="text-xs text-red-200">{errors.reply_to}</p>
-        )}
+        {errors.reply_to && <p className="text-xs text-red-200">{errors.reply_to}</p>}
       </div>
 
       <div className="space-y-1.5">
@@ -125,9 +118,7 @@ function ContactForm() {
           placeholder="How can we help?"
           className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40 resize-none"
         />
-        {errors.message && (
-          <p className="text-xs text-red-200">{errors.message}</p>
-        )}
+        {errors.message && <p className="text-xs text-red-200">{errors.message}</p>}
       </div>
 
       <Button
@@ -197,9 +188,7 @@ function ContactPage() {
                     <c.icon className="h-6 w-6 opacity-90" />
                   </div>
                   <div>
-                    <div className="text-xs uppercase tracking-widest opacity-80">
-                      {c.title}
-                    </div>
+                    <div className="text-xs uppercase tracking-widest opacity-80">{c.title}</div>
                     <div className="text-lg font-semibold">{c.value}</div>
                     <div className="text-sm opacity-80">{c.sub}</div>
                   </div>

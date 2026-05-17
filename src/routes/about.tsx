@@ -31,10 +31,9 @@ function AboutPage() {
             <span className="text-gradient-brand">listening</span>.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            ListenInn Foundation exists to make compassionate mental health care
-            accessible to everyone. We believe that healing often starts with one
-            honest conversation — without judgment, without pressure, and without
-            cost.
+            ListenInn Foundation exists to make compassionate mental health care accessible to
+            everyone. We believe that healing often starts with one honest conversation — without
+            judgment, without pressure, and without cost.
           </p>
         </div>
       </section>
@@ -52,9 +51,7 @@ function AboutPage() {
                 key={s.l}
                 className="rounded-2xl border border-border bg-background p-6 shadow-card text-center"
               >
-                <div className="text-3xl font-bold text-gradient-brand">
-                  {s.n}
-                </div>
+                <div className="text-3xl font-bold text-gradient-brand">{s.n}</div>
                 <div className="text-sm text-muted-foreground mt-1">{s.l}</div>
               </div>
             ))}
@@ -73,17 +70,19 @@ function AboutPage() {
           </div>
           <div className="prose prose-lg max-w-none text-muted-foreground space-y-6">
             <p className="leading-relaxed">
-              ListenInn was born from one realization: <strong className="text-foreground">too many people suffer in silence
-              because they don't have a safe space to speak</strong>. Our founders — a group of
-              counselors, community organizers, and mental health advocates — came
-              together to build a foundation where every person, regardless of
+              ListenInn was born from one realization:{" "}
+              <strong className="text-foreground">
+                too many people suffer in silence because they don't have a safe space to speak
+              </strong>
+              . Our founders — a group of counselors, community organizers, and mental health
+              advocates — came together to build a foundation where every person, regardless of
               background or income, could access the power of being truly heard.
             </p>
             <p className="leading-relaxed">
-              What started as a small helpline has grown into a comprehensive
-              support network spanning trained volunteer listeners, licensed
-              therapists, peer support groups, and youth wellbeing programs. Every
-              day, we show up for the quiet moments and the loud ones.
+              What started as a small helpline has grown into a comprehensive support network
+              spanning trained volunteer listeners, licensed therapists, peer support groups, and
+              youth wellbeing programs. Every day, we show up for the quiet moments and the loud
+              ones.
             </p>
           </div>
 
@@ -114,9 +113,7 @@ function AboutPage() {
                   <item.icon className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{item.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {item.desc}
-                </p>
+                <p className="text-muted-foreground leading-relaxed">{item.desc}</p>
               </div>
             ))}
           </div>
@@ -126,12 +123,9 @@ function AboutPage() {
       {/* CTA */}
       <section className="bg-gradient-brand py-16 text-primary-foreground text-center">
         <div className="container mx-auto px-6 space-y-6">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Ready to take the first step?
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Ready to take the first step?</h2>
           <p className="text-lg opacity-90 max-w-xl mx-auto">
-            Whether you need someone to talk to or want to help others — we're
-            here.
+            Whether you need someone to talk to or want to help others — we're here.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button
@@ -147,7 +141,7 @@ function AboutPage() {
               size="lg"
               variant="outline"
               asChild
-              className="border-white/30 text-primary-foreground hover:bg-white/10 h-12 px-6"
+              className="bg-transparent border-white/30 text-primary-foreground hover:bg-white/10 h-12 px-6"
             >
               <Link to="/get-involved">Get Involved</Link>
             </Button>

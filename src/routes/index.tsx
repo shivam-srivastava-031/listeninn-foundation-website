@@ -51,9 +51,7 @@ function Hero() {
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-xl leading-relaxed">
             A safe place to talk. A place to feel understood.{" "}
-            <span className="text-foreground font-medium">
-              You don't have to carry it alone.
-            </span>
+            <span className="text-foreground font-medium">You don't have to carry it alone.</span>
           </p>
           <div className="flex flex-wrap gap-3 pt-2">
             <Button
@@ -158,9 +156,8 @@ function Home() {
             <span className="text-gradient-brand">listening</span>.
           </h2>
           <p className="text-lg text-muted-foreground leading-relaxed max-w-2xl mx-auto">
-            ListenInn Foundation exists to make compassionate mental health care
-            accessible to everyone. Healing starts with one honest
-            conversation.
+            ListenInn Foundation exists to make compassionate mental health care accessible to
+            everyone. Healing starts with one honest conversation.
           </p>
           <div className="grid sm:grid-cols-3 gap-6 pt-8">
             {[
@@ -172,12 +169,8 @@ function Home() {
                 key={s.l}
                 className="rounded-2xl border border-border bg-background p-6 shadow-card"
               >
-                <div className="text-3xl font-bold text-gradient-brand">
-                  {s.n}
-                </div>
-                <div className="text-sm text-muted-foreground mt-1">
-                  {s.l}
-                </div>
+                <div className="text-3xl font-bold text-gradient-brand">{s.n}</div>
+                <div className="text-sm text-muted-foreground mt-1">{s.l}</div>
               </div>
             ))}
           </div>
@@ -200,8 +193,7 @@ function Home() {
           <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
             <p className="font-script text-primary text-3xl">Our services</p>
             <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
-              Support, in the form{" "}
-              <span className="text-gradient-brand">you need it</span>
+              Support, in the form <span className="text-gradient-brand">you need it</span>
             </h2>
           </div>
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -214,9 +206,7 @@ function Home() {
                   <s.icon className="h-6 w-6" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{s.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">
-                  {s.desc}
-                </p>
+                <p className="text-muted-foreground leading-relaxed">{s.desc}</p>
               </div>
             ))}
           </div>
@@ -292,12 +282,9 @@ function Home() {
       {/* CTA Band */}
       <section className="bg-gradient-brand py-20 text-primary-foreground text-center">
         <div className="container mx-auto px-6 space-y-6 max-w-2xl">
-          <h2 className="text-3xl md:text-4xl font-bold">
-            Ready to take the first step?
-          </h2>
+          <h2 className="text-3xl md:text-4xl font-bold">Ready to take the first step?</h2>
           <p className="text-lg opacity-90">
-            Whether you need someone to talk to or want to help others — we're
-            here for you.
+            Whether you need someone to talk to or want to help others — we're here for you.
           </p>
           <div className="flex flex-wrap justify-center gap-4">
             <Button
@@ -313,7 +300,7 @@ function Home() {
               size="lg"
               variant="outline"
               asChild
-              className="border-white/30 text-primary-foreground hover:bg-white/10 h-12 px-6"
+              className="bg-transparent border-white/30 text-primary-foreground hover:bg-white/10 h-12 px-6"
             >
               <Link to="/contact">
                 Contact Us <ArrowRight className="ml-2 h-4 w-4" />

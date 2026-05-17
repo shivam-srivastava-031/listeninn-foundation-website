@@ -2,15 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
-import {
-  Phone,
-  MessageCircle,
-  Users,
-  Ear,
-  Heart,
-  Shield,
-  ArrowRight,
-} from "lucide-react";
+import { Phone, MessageCircle, Users, Ear, Heart, Shield, ArrowRight } from "lucide-react";
 
 export const Route = createFileRoute("/services")({
   head: () => ({
@@ -80,8 +72,7 @@ function ServicesPage() {
         <div className="container mx-auto px-6 text-center max-w-3xl relative space-y-4">
           <p className="font-script text-primary text-3xl">Our services</p>
           <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight">
-            Support, in the form{" "}
-            <span className="text-gradient-brand">you need it</span>
+            Support, in the form <span className="text-gradient-brand">you need it</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto">
             Whatever you're carrying, there's a way for us to walk with you.
@@ -102,9 +93,7 @@ function ServicesPage() {
                   <s.icon className="h-7 w-7" />
                 </div>
                 <h3 className="text-xl font-semibold mb-2">{s.title}</h3>
-                <p className="text-muted-foreground leading-relaxed mb-4">
-                  {s.desc}
-                </p>
+                <p className="text-muted-foreground leading-relaxed mb-4">{s.desc}</p>
                 <p className="text-sm text-muted-foreground/80 leading-relaxed border-t border-border pt-4">
                   {s.detail}
                 </p>
