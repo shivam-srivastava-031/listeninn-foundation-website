@@ -179,4 +179,26 @@
   display: block;
   width: 100%;
   height: 80px;
-  }
+}
+
+/* Pulse glow for donation CTA */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px color-mix(in oklab, var(--accent) 30%, transparent); }
+  50% { box-shadow: 0 0 40px color-mix(in oklab, var(--accent) 50%, transparent), 0 0 60px color-mix(in oklab, var(--primary) 20%, transparent); }
+}
+.animate-pulse-glow { animation: pulse-glow 3s ease-in-out infinite; }
+
+/* Copy feedback */
+@keyframes copy-pop {
+  0% { transform: scale(0.8); opacity: 0; }
+  50% { transform: scale(1.05); }
+  100% { transform: scale(1); opacity: 1; }
+}
+.animate-copy-pop { animation: copy-pop 0.3s ease-out; }
+
+/* Impact counter entrance */
+@keyframes count-up {
+  0% { opacity: 0; transform: translateY(12px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+.animate-count-up { animation: count-up 0.6s ease-out both; }

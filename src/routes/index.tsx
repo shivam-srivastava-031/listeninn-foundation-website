@@ -1,6 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState, useRef } from "react";
+import emailjs from "@emailjs/browser";
+import { toast } from "sonner";
 import logo from "@/assets/listeninn-logo.png";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import {
   Accordion,
   AccordionContent,
@@ -21,6 +27,14 @@ import {
   Facebook,
   Twitter,
   ArrowRight,
+  Copy,
+  Check,
+  ExternalLink,
+  BookOpen,
+  Clock,
+  Globe,
+  Send,
+  DollarSign,
 } from "lucide-react";
 
 export const Route = createFileRoute("/")({
