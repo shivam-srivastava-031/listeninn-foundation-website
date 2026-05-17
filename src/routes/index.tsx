@@ -89,6 +89,7 @@ const NAV = [
   { href: "#values", label: "Values" },
   { href: "#involved", label: "Get Involved" },
   { href: "#faq", label: "FAQ" },
+  { href: "#helpline", label: "Helpline" },
   { href: "#contact", label: "Contact" },
 ];
 
@@ -369,26 +370,6 @@ function Values() {
 }
 
 function GetInvolved() {
-  const options = [
-    {
-      icon: HandHeart,
-      title: "Volunteer",
-      desc: "Train as a listener and give a few hours a week to someone who needs it.",
-      cta: "Apply to volunteer",
-    },
-    {
-      icon: Heart,
-      title: "Donate",
-      desc: "Every contribution funds free counseling sessions and helpline support.",
-      cta: "Make a donation",
-    },
-    {
-      icon: Users,
-      title: "Partner with us",
-      desc: "Bring ListenInn to your school, workplace or community organisation.",
-      cta: "Become a partner",
-    },
-  ];
   return (
     <section id="involved" className="bg-card py-24">
       <div className="container mx-auto px-6">
@@ -399,8 +380,78 @@ function GetInvolved() {
             <span className="text-gradient-brand">listening louder</span>
           </h2>
         </div>
-        <div className="grid md:grid-cols-3 gap-6">
-          {options.map((o) => (
+
+        {/* Donation CTA — prominent card */}
+        <div className="max-w-3xl mx-auto mb-12 rounded-3xl bg-gradient-brand p-[2px] animate-pulse-glow">
+          <div className="rounded-[calc(1.5rem-2px)] bg-card p-8 md:p-10 text-center space-y-6">
+            <div className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-brand text-primary-foreground shadow-soft mx-auto">
+              <DollarSign className="h-7 w-7" />
+            </div>
+            <h3 className="text-2xl md:text-3xl font-bold">
+              Fund a conversation that{" "}
+              <span className="text-gradient-brand">changes a life</span>
+            </h3>
+            <p className="text-muted-foreground text-lg max-w-xl mx-auto leading-relaxed">
+              Every ₹500 funds one free counseling session. Every ₹2,000 keeps
+              our helpline running for a full day. Your generosity is someone's
+              lifeline.
+            </p>
+            <div className="grid grid-cols-3 gap-4 max-w-md mx-auto pt-2">
+              {[
+                { amount: "₹500", impact: "1 free session" },
+                { amount: "₹2,000", impact: "1 day helpline" },
+                { amount: "₹10,000", impact: "10 sessions" },
+              ].map((d) => (
+                <div
+                  key={d.amount}
+                  className="rounded-xl border border-border bg-background p-3 animate-count-up"
+                >
+                  <div className="text-xl font-bold text-gradient-brand">
+                    {d.amount}
+                  </div>
+                  <div className="text-xs text-muted-foreground mt-0.5">
+                    {d.impact}
+                  </div>
+                </div>
+              ))}
+            </div>
+            <Button
+              size="lg"
+              asChild
+              className="bg-gradient-brand text-primary-foreground shadow-soft hover:opacity-90 h-14 px-8 text-lg mt-2"
+            >
+              <a
+                href="https://donate.stripe.com/test_listeninn"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Heart className="mr-2 h-5 w-5" /> Donate Securely
+                <ExternalLink className="ml-2 h-4 w-4 opacity-70" />
+              </a>
+            </Button>
+            <p className="text-xs text-muted-foreground flex items-center justify-center gap-1.5">
+              <Shield className="h-3.5 w-3.5" /> 256-bit encrypted · Powered by
+              Stripe · Tax-deductible
+            </p>
+          </div>
+        </div>
+
+        {/* Volunteer & Partner cards */}
+        <div className="grid md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+          {[
+            {
+              icon: HandHeart,
+              title: "Volunteer",
+              desc: "Train as a listener and give a few hours a week to someone who needs it.",
+              cta: "Apply to volunteer",
+            },
+            {
+              icon: Users,
+              title: "Partner with us",
+              desc: "Bring ListenInn to your school, workplace or community organisation.",
+              cta: "Become a partner",
+            },
+          ].map((o) => (
             <div
               key={o.title}
               className="rounded-2xl border border-border bg-background p-8 shadow-card hover:shadow-soft transition-shadow"
@@ -428,23 +479,31 @@ function GetInvolved() {
 const FAQS = [
   {
     q: "Is ListenInn really free and confidential?",
-    a: "Yes. Our helpline and listening sessions are free, anonymous and confidential. Counseling sessions are offered on a sliding scale, with free options for those who need them.",
+    a: "Yes. Our helpline and listening sessions are completely free, anonymous, and confidential. Counseling sessions are offered on a sliding scale, with fully free options for those who need them. We never share your information without your explicit consent.",
   },
   {
     q: "Who answers the helpline?",
-    a: "Trained volunteer listeners and on-call mental health professionals. Everyone is vetted and supervised by our clinical team.",
+    a: "Trained volunteer listeners and on-call mental health professionals. Every person on our team is thoroughly vetted, background-checked, and supervised by our clinical team. You're always in safe hands.",
   },
   {
     q: "I'm not in crisis — can I still reach out?",
-    a: "Absolutely. You don't need a reason to call. If something feels heavy, that's reason enough.",
+    a: "Absolutely. You don't need a reason to call. If something feels heavy, confusing, or you just need to talk — that's reason enough. Our listeners are here for everyday struggles too.",
   },
   {
     q: "Do you offer help in multiple languages?",
-    a: "We currently support English, Hindi and Spanish, and are expanding language coverage through our volunteer network.",
+    a: "We currently support English, Hindi, and Spanish, and are actively expanding language coverage through our volunteer network. Let us know your preferred language and we'll do our best to match you.",
   },
   {
     q: "What if I'm worried about someone else?",
-    a: "Call our helpline — we'll guide you through how to support them and connect them to care safely.",
+    a: "Call our helpline — we'll guide you through how to support them and connect them to care safely. You can also share our helpline number with them directly. Caring enough to ask is already a powerful step.",
+  },
+  {
+    q: "Where does my donation go?",
+    a: "100% of donations fund direct services: free counseling sessions, helpline operations, listener training, and youth wellbeing workshops. We publish annual impact reports for full transparency.",
+  },
+  {
+    q: "How quickly can I get help in a crisis?",
+    a: "Our helpline is available 24/7 with no wait time for crisis calls. If you're in immediate danger, please also call your local emergency number. We'll stay with you until you're connected to the right support.",
   },
 ];
 
@@ -479,9 +538,261 @@ function FAQ() {
   );
 }
 
+function HelplineResources() {
+  const [copied, setCopied] = useState(false);
+  const hotline = "1-800-LISTEN-IN";
+
+  const copyNumber = async () => {
+    try {
+      await navigator.clipboard.writeText(hotline);
+      setCopied(true);
+      toast.success("Helpline number copied!");
+      setTimeout(() => setCopied(false), 2500);
+    } catch {
+      toast.error("Could not copy — please select the number manually.");
+    }
+  };
+
+  const resources = [
+    {
+      icon: Clock,
+      title: "24/7 Helpline",
+      desc: "Speak with a trained listener anytime. No wait, no judgment.",
+      link: "tel:18005478364",
+      linkText: "Call now",
+    },
+    {
+      icon: MessageCircle,
+      title: "Live Chat",
+      desc: "Text-based support from 8 AM – 11 PM, every day.",
+      link: "#contact",
+      linkText: "Start chatting",
+    },
+    {
+      icon: Globe,
+      title: "Online Resources",
+      desc: "Self-help guides, breathing exercises, and coping toolkits.",
+      link: "#faq",
+      linkText: "Browse resources",
+    },
+    {
+      icon: BookOpen,
+      title: "Crisis Guides",
+      desc: "Step-by-step guides for supporting yourself or someone you love.",
+      link: "#faq",
+      linkText: "Read guides",
+    },
+  ];
+
+  return (
+    <section
+      id="helpline"
+      className="relative bg-gradient-hero py-24 overflow-hidden"
+    >
+      <div className="pointer-events-none absolute -top-32 -left-32 h-96 w-96 rounded-full bg-primary/15 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-32 -right-32 h-96 w-96 rounded-full bg-accent/15 blur-3xl" />
+
+      <div className="container mx-auto px-6 relative">
+        <div className="text-center max-w-2xl mx-auto mb-14 space-y-3">
+          <p className="font-script text-primary text-3xl">Help & resources</p>
+          <h2 className="text-4xl md:text-5xl font-bold tracking-tight">
+            Support is{" "}
+            <span className="text-gradient-brand">one call away</span>
+          </h2>
+          <p className="text-muted-foreground text-lg">
+            Whether it's 3 PM or 3 AM — we're here. Always.
+          </p>
+        </div>
+
+        {/* Copyable hotline banner */}
+        <div className="max-w-xl mx-auto mb-12 rounded-2xl bg-card border border-border p-6 shadow-soft text-center space-y-3">
+          <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <Phone className="h-4 w-4 text-accent" />
+            <span>24/7 Helpline — free & confidential</span>
+          </div>
+          <div className="flex items-center justify-center gap-3">
+            <span className="text-3xl md:text-4xl font-bold tracking-wide text-gradient-brand">
+              {hotline}
+            </span>
+            <button
+              onClick={copyNumber}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-2 text-sm font-medium text-foreground hover:bg-muted transition-colors"
+              aria-label="Copy helpline number"
+            >
+              {copied ? (
+                <>
+                  <Check className="h-4 w-4 text-accent animate-copy-pop" />{" "}
+                  Copied
+                </>
+              ) : (
+                <>
+                  <Copy className="h-4 w-4" /> Copy
+                </>
+              )}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            If you are in immediate danger, please call your local emergency
+            number first.
+          </p>
+        </div>
+
+        {/* Resource cards */}
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          {resources.map((r) => (
+            <div
+              key={r.title}
+              className="rounded-2xl bg-card/80 backdrop-blur border border-border p-6 shadow-card hover:shadow-soft hover:-translate-y-1 transition-all duration-300"
+            >
+              <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-brand text-primary-foreground mb-4 shadow-soft">
+                <r.icon className="h-5 w-5" />
+              </div>
+              <h3 className="text-lg font-semibold mb-1">{r.title}</h3>
+              <p className="text-sm text-muted-foreground mb-4">{r.desc}</p>
+              <a
+                href={r.link}
+                className="inline-flex items-center text-sm font-medium text-primary hover:text-accent transition-colors"
+              >
+                {r.linkText}{" "}
+                <ArrowRight className="ml-1 h-3.5 w-3.5" />
+              </a>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function ContactForm() {
+  const formRef = useRef<HTMLFormElement>(null);
+  const [sending, setSending] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+
+  const validate = (fd: FormData) => {
+    const errs: Record<string, string> = {};
+    const name = (fd.get("from_name") as string)?.trim();
+    const email = (fd.get("reply_to") as string)?.trim();
+    const message = (fd.get("message") as string)?.trim();
+
+    if (!name || name.length < 2) errs.from_name = "Please enter your name.";
+    if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email))
+      errs.reply_to = "Please enter a valid email.";
+    if (!message || message.length < 10)
+      errs.message = "Message must be at least 10 characters.";
+    return errs;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!formRef.current) return;
+
+    const fd = new FormData(formRef.current);
+    const errs = validate(fd);
+    setErrors(errs);
+    if (Object.keys(errs).length) return;
+
+    setSending(true);
+    try {
+      await emailjs.sendForm(
+        "YOUR_SERVICE_ID",
+        "YOUR_TEMPLATE_ID",
+        formRef.current,
+        "YOUR_PUBLIC_KEY",
+      );
+      toast.success("Message sent! We'll get back to you soon. 💜");
+      formRef.current.reset();
+      setErrors({});
+    } catch {
+      toast.error("Something went wrong. Please try again or call our helpline.");
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-8 space-y-5"
+      noValidate
+    >
+      <h3 className="text-xl font-semibold mb-1">Send us a message</h3>
+      <p className="text-sm opacity-80 mb-4">
+        We'll reply within 24 hours. For urgent help, call our helpline.
+      </p>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="contact-name" className="text-primary-foreground/90">
+          Your name
+        </Label>
+        <Input
+          id="contact-name"
+          name="from_name"
+          placeholder="Jane Doe"
+          className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40"
+        />
+        {errors.from_name && (
+          <p className="text-xs text-red-200">{errors.from_name}</p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="contact-email" className="text-primary-foreground/90">
+          Email address
+        </Label>
+        <Input
+          id="contact-email"
+          name="reply_to"
+          type="email"
+          placeholder="you@example.com"
+          className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40"
+        />
+        {errors.reply_to && (
+          <p className="text-xs text-red-200">{errors.reply_to}</p>
+        )}
+      </div>
+
+      <div className="space-y-1.5">
+        <Label htmlFor="contact-message" className="text-primary-foreground/90">
+          Your message
+        </Label>
+        <Textarea
+          id="contact-message"
+          name="message"
+          rows={4}
+          placeholder="How can we help?"
+          className="bg-white/10 border-white/20 text-primary-foreground placeholder:text-white/50 focus-visible:ring-white/40 resize-none"
+        />
+        {errors.message && (
+          <p className="text-xs text-red-200">{errors.message}</p>
+        )}
+      </div>
+
+      <Button
+        type="submit"
+        disabled={sending}
+        size="lg"
+        className="w-full bg-white text-primary hover:bg-white/90 font-semibold h-12 shadow-soft"
+      >
+        {sending ? (
+          "Sending…"
+        ) : (
+          <>
+            <Send className="mr-2 h-4 w-4" /> Send Message
+          </>
+        )}
+      </Button>
+    </form>
+  );
+}
+
 function Contact() {
   return (
-    <section id="contact" className="relative bg-gradient-brand py-24 text-primary-foreground overflow-hidden">
+    <section
+      id="contact"
+      className="relative bg-gradient-brand py-24 text-primary-foreground overflow-hidden"
+    >
       <div className="pointer-events-none absolute -top-32 -right-32 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
       <div className="pointer-events-none absolute -bottom-32 -left-32 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
       <div className="container mx-auto px-6 relative">
@@ -494,39 +805,50 @@ function Contact() {
             One conversation can change everything. Start one with us.
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          {[
-            {
-              icon: Phone,
-              title: "Helpline",
-              value: "1-800-LISTEN-IN",
-              sub: "Available 24 hours",
-            },
-            {
-              icon: Mail,
-              title: "Email",
-              value: "hello@listeninn.org",
-              sub: "Replies within 24 hours",
-            },
-            {
-              icon: MessageCircle,
-              title: "Chat",
-              value: "Start a chat",
-              sub: "Mon–Sun, 8am–11pm",
-            },
-          ].map((c) => (
-            <div
-              key={c.title}
-              className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-6 text-center"
-            >
-              <c.icon className="h-7 w-7 mx-auto mb-3 opacity-90" />
-              <div className="text-xs uppercase tracking-widest opacity-80">
-                {c.title}
+
+        <div className="grid lg:grid-cols-2 gap-8 max-w-5xl mx-auto">
+          {/* Info cards */}
+          <div className="grid sm:grid-cols-1 gap-4">
+            {[
+              {
+                icon: Phone,
+                title: "Helpline",
+                value: "1-800-LISTEN-IN",
+                sub: "Available 24 hours",
+              },
+              {
+                icon: Mail,
+                title: "Email",
+                value: "hello@listeninn.org",
+                sub: "Replies within 24 hours",
+              },
+              {
+                icon: MessageCircle,
+                title: "Chat",
+                value: "Start a chat",
+                sub: "Mon–Sun, 8am–11pm",
+              },
+            ].map((c) => (
+              <div
+                key={c.title}
+                className="rounded-2xl bg-white/10 backdrop-blur border border-white/20 p-5 flex items-center gap-4"
+              >
+                <div className="flex-shrink-0 inline-flex h-12 w-12 items-center justify-center rounded-xl bg-white/15">
+                  <c.icon className="h-6 w-6 opacity-90" />
+                </div>
+                <div>
+                  <div className="text-xs uppercase tracking-widest opacity-80">
+                    {c.title}
+                  </div>
+                  <div className="text-lg font-semibold">{c.value}</div>
+                  <div className="text-sm opacity-80">{c.sub}</div>
+                </div>
               </div>
-              <div className="text-lg font-semibold mt-1">{c.value}</div>
-              <div className="text-sm opacity-80 mt-1">{c.sub}</div>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          {/* Contact Form */}
+          <ContactForm />
         </div>
       </div>
       <div className="text-background">
@@ -579,6 +901,7 @@ function Home() {
         <Values />
         <GetInvolved />
         <FAQ />
+        <HelplineResources />
         <Contact />
       </main>
       <Footer />
