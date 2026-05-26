@@ -509,19 +509,7 @@ function ContactSection() {
   );
 }
 
-/* ─────────────────────── Tagline Banner ─────────────────────── */
-function TaglineBanner() {
-  return (
-    <section className="bg-card py-10 text-center">
-      <div className="container mx-auto px-6">
-        <p className="font-script text-4xl md:text-5xl text-primary">
-          "Where every voice is heard with heart.{" "}
-          <span className="text-red-500">❤️</span>"
-        </p>
-      </div>
-    </section>
-  );
-}
+
 
 /* ─────────────────────── Home ─────────────────────── */
 function Home() {
@@ -534,7 +522,7 @@ function Home() {
       <VolunteerSection />
       <DonateSection />
       <ContactSection />
-      <TaglineBanner />
+
     </PageShell>
   );
 }

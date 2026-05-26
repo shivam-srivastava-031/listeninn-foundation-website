@@ -128,13 +128,6 @@ export function Header() {
 export function Footer() {
   return (
     <footer className="bg-background border-t border-border/60">
-      {/* Tagline band */}
-      <div className="bg-gradient-brand py-6 text-center text-primary-foreground">
-        <p className="text-lg md:text-xl font-semibold tracking-wide">
-          "Where every voice is heard with heart. <span className="text-red-200">❤️</span>"
-        </p>
-      </div>
-
       <div className="container mx-auto px-6 py-10">
         {/* Main footer grid */}
         <div className="grid md:grid-cols-4 gap-8 mb-8">
