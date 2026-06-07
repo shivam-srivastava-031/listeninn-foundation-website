@@ -16,14 +16,15 @@ import {
   XCircle, AlertTriangle, Brain, Sparkles, Send, ChevronDown, ChevronUp,
   Settings, Eye, UserCheck, ClipboardList, Bell, MessageSquare,
   Loader2, KeyRound, ToggleLeft, ToggleRight, RefreshCw, Trash2,
-  TrendingUp, Target, Zap,
+  TrendingUp, Target, Zap, Activity, Mic, Database, MessageCircle,
+  FileSpreadsheet, Download,
 } from "lucide-react";
 import {
   type Volunteer, type AppState,
   getState, subscribe, updateVolunteer, addParticipation, addReminder,
   markReminderSent, updateSettings, updateProjectVolunteerCount,
   screenVolunteerLocal, screenVolunteerAI, getProjectMatchScores,
-  testGeminiConnection, resetState,
+  testGeminiConnection, resetState, analyzeCallAI, queryNGOBrainAI,
 } from "@/lib/db";
 
 export const Route = createFileRoute("/admin")({
@@ -46,14 +47,18 @@ function useDB(): AppState {
 
 // ━━━━━━━━━━━━━━━━━━━ Tab types ━━━━━━━━━━━━━━━━━━━
 
-type Tab = "screening" | "matching" | "participation" | "reminders" | "logs" | "settings";
+type Tab = "screening" | "leads" | "matching" | "participation" | "impact" | "conversations" | "reminders" | "logs" | "brain" | "settings";
 
-const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
+const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "screening", label: "Screening", icon: Shield },
+  { key: "leads", label: "Directory", icon: FileSpreadsheet },
   { key: "matching", label: "Matching", icon: Target },
   { key: "participation", label: "Participation", icon: ClipboardList },
+  { key: "impact", label: "Impact", icon: Activity },
+  { key: "conversations", label: "Sessions", icon: Mic },
   { key: "reminders", label: "Reminders", icon: Bell },
-  { key: "logs", label: "Feedback & Donations", icon: MessageSquare },
+  { key: "logs", label: "Feedback", icon: MessageSquare },
+  { key: "brain", label: "NGO Brain", icon: Database },
   { key: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -142,14 +147,111 @@ function AdminPage() {
       <section className="bg-background py-10 min-h-[60vh]">
         <div className="container mx-auto px-6">
           {tab === "screening" && <ScreeningPanel db={db} />}
+          {tab === "leads" && <LeadsPanel db={db} />}
           {tab === "matching" && <MatchingPanel db={db} />}
           {tab === "participation" && <ParticipationPanel db={db} />}
+          {tab === "impact" && <ImpactPanel db={db} />}
+          {tab === "conversations" && <ConversationsPanel db={db} />}
           {tab === "reminders" && <RemindersPanel db={db} />}
           {tab === "logs" && <LogsPanel db={db} />}
+          {tab === "brain" && <NGOBrainPanel db={db} />}
           {tab === "settings" && <SettingsPanel db={db} />}
         </div>
       </section>
     </PageShell>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 1.5 LEADS PANEL ━━━━━━━━━━━━━━━━━━━
+
+function LeadsPanel({ db }: { db: AppState }) {
+  const exportCSV = () => {
+    const headers = ["Name", "Email", "Phone", "Resume Link", "Skills", "Availability", "Motivation", "Status", "Date Submitted"];
+    const rows = db.volunteers.map(v => [
+      `"${v.name}"`, 
+      `"${v.email}"`, 
+      `"${v.phone}"`, 
+      `"${v.resumeLink}"`, 
+      `"${v.skills.join(", ")}"`, 
+      `"${v.availability}"`, 
+      `"${v.motivation.replace(/"/g, '""')}"`, 
+      `"${v.status}"`, 
+      `"${new Date(v.submittedAt).toLocaleDateString()}"`
+    ]);
+    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "listeninn_volunteers_leads.csv");
+    link.style.visibility = "hidden";
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    toast.success("Excel/CSV export downloaded successfully!");
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <FileSpreadsheet className="h-5 w-5 text-accent" /> Volunteer Leads Directory
+        </h2>
+        <Button onClick={exportCSV} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          <Download className="mr-2 h-4 w-4" /> Export as CSV (Excel)
+        </Button>
+      </div>
+
+      <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30 text-left whitespace-nowrap">
+                <th className="px-5 py-3 font-medium text-muted-foreground">Name</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Contact</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Resume</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Skills</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
+              </tr>
+            </thead>
+            <tbody>
+              {db.volunteers.map((vol) => (
+                <tr key={vol.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                  <td className="px-5 py-3 font-medium">{vol.name}</td>
+                  <td className="px-5 py-3">
+                    <div className="text-xs">{vol.email}</div>
+                    <div className="text-xs text-muted-foreground">{vol.phone || "—"}</div>
+                  </td>
+                  <td className="px-5 py-3">
+                    {vol.resumeLink ? (
+                      <a href={vol.resumeLink} target="_blank" rel="noreferrer" className="text-primary hover:underline flex items-center gap-1 text-xs">
+                        View <ArrowRight className="h-3 w-3" />
+                      </a>
+                    ) : <span className="text-muted-foreground text-xs">—</span>}
+                  </td>
+                  <td className="px-5 py-3 text-xs text-muted-foreground max-w-[150px] truncate">
+                    {vol.skills.join(", ")}
+                  </td>
+                  <td className="px-5 py-3">
+                    <Badge className={
+                      vol.status === "approved" ? "bg-green-100 text-green-700" :
+                      vol.status === "rejected" ? "bg-red-100 text-red-700" :
+                      "bg-yellow-100 text-yellow-700"
+                    }>
+                      {vol.status}
+                    </Badge>
+                  </td>
+                  <td className="px-5 py-3 text-muted-foreground text-xs">
+                    {new Date(vol.submittedAt).toLocaleDateString()}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -831,7 +933,204 @@ function LogsPanel({ db }: { db: AppState }) {
   );
 }
 
-// ━━━━━━━━━━━━━━━━━━━ 6. SETTINGS PANEL ━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━ 6. IMPACT PANEL ━━━━━━━━━━━━━━━━━━━
+
+function ImpactPanel({ db }: { db: AppState }) {
+  const [analyzing, setAnalyzing] = useState(false);
+  const [report, setReport] = useState<string | null>(null);
+
+  const generateReport = async () => {
+    setAnalyzing(true);
+    // Simulate AI delay
+    await new Promise(r => setTimeout(r, 1500));
+    setReport(`Based on recent data, ListenInn's impact is significant.
+Event engagement averages ${Math.round(db.events.reduce((s,e)=>s+e.engagementScore,0)/db.events.length)}% across ${db.events.length} events, reaching over ${db.events.reduce((s,e)=>s+e.attendees,0)} attendees.
+Survey satisfaction is strong at ${Math.round(db.surveys.reduce((s,v)=>s+v.satisfactionScore,0)/db.surveys.length)}/10. Beneficiaries report feeling "understood" and "supported".
+Overall sentiment is overwhelmingly positive.`);
+    setAnalyzing(false);
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Activity className="h-5 w-5 text-accent" /> Impact Measurement
+        </h2>
+        <Button onClick={generateReport} disabled={analyzing} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />} Generate AI Report
+        </Button>
+      </div>
+
+      {report && (
+        <div className="rounded-2xl border border-accent/30 bg-accent/5 p-6 shadow-soft">
+          <h3 className="font-semibold flex items-center gap-2 text-accent mb-3"><Sparkles className="h-4 w-4" /> AI Impact Summary</h3>
+          <p className="text-sm leading-relaxed whitespace-pre-line">{report}</p>
+        </div>
+      )}
+
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Events */}
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <h3 className="font-semibold mb-4">Event Attendance</h3>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={db.events} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.025 295)" />
+              <XAxis dataKey="eventName" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="attendees" fill="#1FA39B" radius={[6, 6, 0, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        {/* Surveys */}
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+          <h3 className="font-semibold p-6 pb-2">Survey Responses</h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left">
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Type</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Score</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Comment</th>
+                </tr>
+              </thead>
+              <tbody>
+                {db.surveys.map((s) => (
+                  <tr key={s.id} className="border-b border-border/50 hover:bg-muted/20">
+                    <td className="px-5 py-3 capitalize">{s.type}</td>
+                    <td className="px-5 py-3 font-bold text-primary">{s.satisfactionScore}/10</td>
+                    <td className="px-5 py-3 text-muted-foreground truncate max-w-[150px]">{s.comments}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 7. CONVERSATIONS PANEL ━━━━━━━━━━━━━━━━━━━
+
+function ConversationsPanel({ db }: { db: AppState }) {
+  const [analyzing, setAnalyzing] = useState<string | null>(null);
+
+  const handleAnalyze = async (id: string) => {
+    setAnalyzing(id);
+    await analyzeCallAI(id);
+    setAnalyzing(null);
+    toast.success("Conversation analyzed by AI");
+  };
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Mic className="h-5 w-5 text-primary" /> Audio/Session Transcripts
+      </h2>
+      <div className="grid gap-6">
+        {db.callSessions.map((call) => (
+          <div key={call.id} className="rounded-2xl border border-border bg-card p-6 shadow-card space-y-4">
+            <div className="flex justify-between items-start">
+              <div>
+                <div className="font-semibold text-sm text-muted-foreground">Session {call.id} • {call.durationMinutes} mins</div>
+                <div className="text-xs text-muted-foreground">{new Date(call.date).toLocaleString()}</div>
+              </div>
+              {!call.analyzed ? (
+                <Button size="sm" onClick={() => handleAnalyze(call.id)} disabled={analyzing === call.id} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+                  {analyzing === call.id ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Brain className="h-4 w-4 mr-1" />} Analyze
+                </Button>
+              ) : (
+                <Badge className={call.sentiment === "Positive" ? "bg-green-100 text-green-700" : call.sentiment === "Negative" ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}>
+                  {call.sentiment} Sentiment
+                </Badge>
+              )}
+            </div>
+            
+            <div className="bg-muted/30 p-4 rounded-xl text-sm italic border border-border whitespace-pre-wrap max-h-[150px] overflow-y-auto">
+              {call.transcript}
+            </div>
+
+            {call.analyzed && (
+              <div className="bg-accent/5 border border-accent/20 p-4 rounded-xl space-y-3">
+                <div className="flex items-center gap-2 font-semibold text-accent"><Sparkles className="h-4 w-4" /> AI Analysis</div>
+                <div className="grid md:grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Emotions Detected</div>
+                    <div className="flex flex-wrap gap-1">
+                      {call.emotions.map(e => <Badge key={e} variant="outline" className="text-xs">{e}</Badge>)}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs text-muted-foreground mb-1">Key Concerns</div>
+                    <div className="flex flex-wrap gap-1">
+                      {call.concerns.map(c => <Badge key={c} variant="outline" className="text-xs">{c}</Badge>)}
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <div className="text-xs text-muted-foreground mb-1">Anonymized Report</div>
+                  <p className="text-sm">{call.anonymizedSummary}</p>
+                </div>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 8. NGO BRAIN PANEL ━━━━━━━━━━━━━━━━━━━
+
+function NGOBrainPanel({ db }: { db: AppState }) {
+  const [query, setQuery] = useState("");
+  const [response, setResponse] = useState("");
+  const [asking, setAsking] = useState(false);
+
+  const handleAsk = async () => {
+    if (!query.trim()) return;
+    setAsking(true);
+    const res = await queryNGOBrainAI(query);
+    setResponse(res);
+    setAsking(false);
+  };
+
+  return (
+    <div className="space-y-6 max-w-3xl mx-auto">
+      <div className="text-center space-y-2 mb-8">
+        <Database className="h-12 w-12 text-accent mx-auto" />
+        <h2 className="text-2xl font-bold">NGO Brain</h2>
+        <p className="text-muted-foreground">Ask questions across all volunteer, project, donor, and feedback data.</p>
+      </div>
+
+      <div className="flex gap-2">
+        <Input 
+          value={query} 
+          onChange={(e) => setQuery(e.target.value)} 
+          placeholder="e.g. What are the top concerns from the feedback forms?" 
+          className="h-12 bg-card"
+          onKeyDown={(e) => e.key === "Enter" && handleAsk()}
+        />
+        <Button onClick={handleAsk} disabled={asking || !query.trim()} className="h-12 px-6 bg-gradient-brand text-primary-foreground hover:opacity-90">
+          {asking ? <Loader2 className="h-5 w-5 animate-spin" /> : <Send className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {response && (
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-soft mt-6">
+          <div className="flex gap-3 items-start">
+            <div className="bg-gradient-brand text-primary-foreground p-2 rounded-lg"><Brain className="h-5 w-5" /></div>
+            <div className="text-sm leading-relaxed whitespace-pre-line pt-1">{response}</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 9. SETTINGS PANEL ━━━━━━━━━━━━━━━━━━━
 
 function SettingsPanel({ db }: { db: AppState }) {
   const [apiKey, setApiKey] = useState(db.settings.geminiApiKey);

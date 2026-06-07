@@ -15,6 +15,7 @@ import {
   User,
   CheckCircle2,
   Loader2,
+  Globe,
 } from "lucide-react";
 import {
   addVolunteer,
@@ -27,7 +28,7 @@ import {
 // ━━━━━━━━━━━━━━━━━━━ Types ━━━━━━━━━━━━━━━━━━━
 
 type ChatMode = "menu" | "faq" | "programs" | "volunteer" | "donate" | "feedback";
-type VolunteerStep = "name" | "email" | "skills" | "hours" | "motivation" | "done";
+type VolunteerStep = "name" | "email" | "phone" | "skills" | "resume" | "hours" | "motivation" | "done";
 type DonateStep = "amount" | "name" | "email" | "done";
 type FeedbackStep = "rating" | "comment" | "done";
 
@@ -46,12 +47,13 @@ export function AiChatWidget() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
   const [isTyping, setIsTyping] = useState(false);
+  const [language, setLanguage] = useState("English");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // Volunteer flow state
   const [volStep, setVolStep] = useState<VolunteerStep>("name");
-  const [volData, setVolData] = useState({ name: "", email: "", skills: "", hours: "", motivation: "" });
+  const [volData, setVolData] = useState({ name: "", email: "", phone: "", skills: "", resume: "", hours: "", motivation: "" });
 
   // Donate flow state
   const [donStep, setDonStep] = useState<DonateStep>("amount");
@@ -82,7 +84,7 @@ export function AiChatWidget() {
   const goToMenu = () => {
     setMode("menu");
     setMessages([]);
-    setVolStep("name"); setVolData({ name: "", email: "", skills: "", hours: "", motivation: "" });
+    setVolStep("name"); setVolData({ name: "", email: "", phone: "", skills: "", resume: "", hours: "", motivation: "" });
     setDonStep("amount"); setDonData({ amount: 0, name: "", email: "" });
     setFbStep("rating"); setFbData({ rating: 0, comment: "", name: "" });
   };
@@ -131,7 +133,7 @@ export function AiChatWidget() {
     if (mode === "faq") {
       setIsTyping(true);
       const context = messages.map((m) => `${m.from}: ${m.text}`).join("\n");
-      const reply = await chatWithAI(text, context);
+      const reply = await chatWithAI(text, context, language);
       setIsTyping(false);
       addMsg("bot", reply);
       return;
@@ -154,11 +156,21 @@ export function AiChatWidget() {
       case "email":
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) { botReply("Hmm, that doesn't look like a valid email. Could you try again? 📧"); return; }
         setVolData((d) => ({ ...d, email: text }));
+        setVolStep("phone");
+        botReply("Got it! Could you also provide a phone number where we can reach you? 📱");
+        break;
+      case "phone":
+        setVolData((d) => ({ ...d, phone: text }));
         setVolStep("skills");
         botReply("Great! What skills do you bring? (e.g. active listening, empathy, public speaking, writing — separate with commas)");
         break;
       case "skills":
         setVolData((d) => ({ ...d, skills: text }));
+        setVolStep("resume");
+        botReply("Could you share a link to your resume or LinkedIn profile? 📄 (or type 'skip')");
+        break;
+      case "resume":
+        setVolData((d) => ({ ...d, resume: text === "skip" ? "" : text }));
         setVolStep("hours");
         botReply("How many hours per week can you commit? (e.g. 5, 8, 10)");
         break;
@@ -173,6 +185,8 @@ export function AiChatWidget() {
         addVolunteer({
           name: finalData.name,
           email: finalData.email,
+          phone: finalData.phone,
+          resumeLink: finalData.resume,
           skills: finalData.skills.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean),
           availability: `${finalData.hours} hours/week`,
           motivation: finalData.motivation,
@@ -287,7 +301,23 @@ export function AiChatWidget() {
                 </div>
               </div>
             </div>
-            <Sparkles className="h-4 w-4 opacity-60 flex-shrink-0" />
+            
+            {/* Language Selector */}
+            <div className="flex items-center gap-1 flex-shrink-0 bg-white/10 rounded-md px-2 py-1">
+              <Globe className="h-3.5 w-3.5 opacity-80" />
+              <select
+                value={language}
+                onChange={(e) => setLanguage(e.target.value)}
+                className="bg-transparent text-xs text-white border-none focus:outline-none appearance-none cursor-pointer pr-2"
+                style={{ textAlignLast: "center" }}
+              >
+                <option className="text-black" value="English">EN</option>
+                <option className="text-black" value="Hindi">HI</option>
+                <option className="text-black" value="Bengali">BN</option>
+                <option className="text-black" value="Tamil">TA</option>
+                <option className="text-black" value="Marathi">MR</option>
+              </select>
+            </div>
           </div>
 
           {/* Body */}
@@ -459,7 +489,9 @@ export function AiChatWidget() {
                     mode === "volunteer" ? (
                       volStep === "name" ? "Your full name..." :
                       volStep === "email" ? "your@email.com" :
+                      volStep === "phone" ? "e.g. +91 98765..." :
                       volStep === "skills" ? "e.g. empathy, listening..." :
+                      volStep === "resume" ? "https://linkedin.com/..." :
                       volStep === "hours" ? "e.g. 8" :
                       "Share your motivation..."
                     ) :

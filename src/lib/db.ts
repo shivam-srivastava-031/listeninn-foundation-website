@@ -16,6 +16,8 @@ export interface Volunteer {
   id: string;
   name: string;
   email: string;
+  phone: string;
+  resumeLink: string;
   skills: string[];
   availability: string;      // e.g. "10 hours/week"
   motivation: string;
@@ -73,6 +75,35 @@ export interface Feedback {
   aiSentiment: Sentiment;
 }
 
+export interface CallSession {
+  id: string;
+  date: string;
+  durationMinutes: number;
+  transcript: string;
+  analyzed: boolean;
+  emotions: string[];
+  concerns: string[];
+  anonymizedSummary: string;
+  sentiment: Sentiment | null;
+}
+
+export interface SurveyResponse {
+  id: string;
+  date: string;
+  type: "volunteer" | "beneficiary";
+  satisfactionScore: number;
+  comments: string;
+}
+
+export interface EventAttendance {
+  id: string;
+  eventName: string;
+  date: string;
+  attendees: number;
+  platform: "in-person" | "online" | "social-media";
+  engagementScore: number;
+}
+
 export interface AppSettings {
   geminiApiKey: string;
   useGemini: boolean;
@@ -86,6 +117,9 @@ export interface AppState {
   donations: Donation[];
   feedbacks: Feedback[];
   settings: AppSettings;
+  callSessions: CallSession[];
+  surveys: SurveyResponse[];
+  events: EventAttendance[];
 }
 
 // ━━━━━━━━━━━━━━━━━━━ Helpers ━━━━━━━━━━━━━━━━━━━
@@ -146,6 +180,8 @@ const INITIAL_VOLUNTEERS: Volunteer[] = [
     id: "vol-001",
     name: "Ananya Sharma",
     email: "ananya@example.com",
+    phone: "+91 98765 43210",
+    resumeLink: "https://linkedin.com/in/ananyasharma",
     skills: ["active listening", "empathy", "communication"],
     availability: "10 hours/week",
     motivation: "I lost a close friend to depression and want to ensure no one else feels that alone. Listening is the most powerful thing we can do.",
@@ -158,6 +194,8 @@ const INITIAL_VOLUNTEERS: Volunteer[] = [
     id: "vol-002",
     name: "Rahul Verma",
     email: "rahul.v@example.com",
+    phone: "+91 91234 56789",
+    resumeLink: "https://drive.google.com/file/d/rahul_resume",
     skills: ["public speaking", "youth engagement", "creativity"],
     availability: "6 hours/week",
     motivation: "I'm a teacher and I see students struggling silently every day. I want to help them open up and know it's okay to ask for help.",
@@ -170,6 +208,8 @@ const INITIAL_VOLUNTEERS: Volunteer[] = [
     id: "vol-003",
     name: "Priya Nair",
     email: "priya.n@example.com",
+    phone: "+91 99887 76655",
+    resumeLink: "https://priyanair.portfolio.com",
     skills: ["social media", "writing", "design", "community outreach"],
     availability: "8 hours/week",
     motivation: "As a content creator, I want to use my skills for something meaningful. Mental health content can reach millions and change perspectives.",
@@ -182,6 +222,8 @@ const INITIAL_VOLUNTEERS: Volunteer[] = [
     id: "vol-004",
     name: "Meera Iyer",
     email: "meera.i@example.com",
+    phone: "+91 88776 65544",
+    resumeLink: "https://linkedin.com/in/meeraiyer",
     skills: ["empathy", "facilitation", "patience", "group dynamics"],
     availability: "5 hours/week",
     motivation: "I've attended therapy myself and it changed my life. I want to create safe spaces where people feel comfortable being vulnerable.",
@@ -194,6 +236,8 @@ const INITIAL_VOLUNTEERS: Volunteer[] = [
     id: "vol-005",
     name: "Arjun Patel",
     email: "arjun.p@example.com",
+    phone: "+91 77665 54433",
+    resumeLink: "https://drive.google.com/file/d/arjun_cv",
     skills: ["communication", "crisis management", "active listening"],
     availability: "12 hours/week",
     motivation: "I'm a retired social worker with 15 years of experience. I want to continue making a difference in my retirement.",
@@ -236,16 +280,58 @@ const INITIAL_FEEDBACKS: Feedback[] = [
   { id: "f-004", name: "Neha P.", rating: 3, comment: "I appreciated the effort but felt the counselor wasn't fully understanding my situation. Maybe more training needed.", timestamp: daysAgo(14), aiSentiment: "Negative" },
 ];
 
+const INITIAL_CALLS: CallSession[] = [
+  {
+    id: "call-001",
+    date: daysAgo(1),
+    durationMinutes: 45,
+    transcript: "User: I just feel so overwhelmed with my exams. I can't sleep, and my chest feels tight.\nVolunteer: I'm here for you. It sounds like the pressure is really heavy right now. Can you tell me what a typical night looks like for you lately?\nUser: I just toss and turn. I'm afraid of failing my parents. They sacrificed so much.\nVolunteer: That's a lot to carry. It's completely understandable to feel anxious given their sacrifices. Let's talk about some grounding techniques...",
+    analyzed: false,
+    emotions: [],
+    concerns: [],
+    anonymizedSummary: "",
+    sentiment: null,
+  },
+  {
+    id: "call-002",
+    date: daysAgo(3),
+    durationMinutes: 20,
+    transcript: "User: I lost my job yesterday. I don't know how I'm going to pay rent. I'm scared.\nVolunteer: I am so sorry to hear that. Losing your livelihood is incredibly stressful. You have every right to feel scared right now.\nUser: I haven't told my wife yet. I can't face her.\nVolunteer: Taking that first step to share the news is daunting. Whenever you're ready, we can explore how to start that conversation, but right now, let's just focus on how you're feeling.",
+    analyzed: true,
+    emotions: ["Fear", "Stress", "Shame"],
+    concerns: ["Financial insecurity", "Job loss", "Relationship stress"],
+    anonymizedSummary: "Caller experienced recent job loss and is expressing severe financial anxiety and fear of informing their spouse. Volunteer provided validation and emotional support without rushing to problem-solving.",
+    sentiment: "Negative",
+  }
+];
+
+const INITIAL_SURVEYS: SurveyResponse[] = [
+  { id: "srv-001", date: daysAgo(5), type: "beneficiary", satisfactionScore: 9, comments: "The peer group changed my life. I finally feel understood." },
+  { id: "srv-002", date: daysAgo(12), type: "volunteer", satisfactionScore: 8, comments: "Great training, but I wish we had more ongoing check-ins with supervisors." },
+  { id: "srv-003", date: daysAgo(20), type: "beneficiary", satisfactionScore: 7, comments: "Helpline was helpful but took a while to connect during peak hours." },
+  { id: "srv-004", date: daysAgo(25), type: "volunteer", satisfactionScore: 10, comments: "Volunteering here gives my life immense purpose. Incredible team." },
+];
+
+const INITIAL_EVENTS: EventAttendance[] = [
+  { id: "evt-001", eventName: "School Mental Health Workshop", date: daysAgo(4), attendees: 120, platform: "in-person", engagementScore: 85 },
+  { id: "evt-002", eventName: "Anxiety Coping Webinar", date: daysAgo(10), attendees: 350, platform: "online", engagementScore: 92 },
+  { id: "evt-003", eventName: "World Mental Health Day Campaign", date: daysAgo(30), attendees: 5000, platform: "social-media", engagementScore: 78 },
+];
+
 // ━━━━━━━━━━━━━━━━━━━ State Manager ━━━━━━━━━━━━━━━━━━━
 
 const STORAGE_KEY = "listeninn-db";
 
 function loadState(): AppState {
+  const defaults = getDefaultState();
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (raw) return JSON.parse(raw) as AppState;
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<AppState>;
+      return { ...defaults, ...parsed };
+    }
   } catch { /* ignore */ }
-  return getDefaultState();
+  return defaults;
 }
 
 function getDefaultState(): AppState {
@@ -257,6 +343,9 @@ function getDefaultState(): AppState {
     donations: INITIAL_DONATIONS,
     feedbacks: INITIAL_FEEDBACKS,
     settings: { geminiApiKey: "", useGemini: false },
+    callSessions: INITIAL_CALLS,
+    surveys: INITIAL_SURVEYS,
+    events: INITIAL_EVENTS,
   };
 }
 
@@ -429,6 +518,47 @@ export function analyzeSentimentLocal(text: string, rating: number): Sentiment {
   return "Neutral";
 }
 
+export function analyzeCallLocal(callId: string): void {
+  const call = _state.callSessions.find(c => c.id === callId);
+  if (!call) return;
+  const negHits = countKeywords(call.transcript, NEGATIVE_WORDS);
+  const posHits = countKeywords(call.transcript, POSITIVE_WORDS);
+  
+  const emotions = [];
+  if (negHits > 2) emotions.push("Stress", "Anxiety");
+  if (posHits > 2) emotions.push("Relief", "Gratitude");
+  if (emotions.length === 0) emotions.push("Neutral");
+
+  const concerns = [];
+  if (call.transcript.toLowerCase().includes("job") || call.transcript.toLowerCase().includes("money")) concerns.push("Financial stress");
+  if (call.transcript.toLowerCase().includes("school") || call.transcript.toLowerCase().includes("exam")) concerns.push("Academic pressure");
+  if (concerns.length === 0) concerns.push("General wellbeing");
+
+  const sentiment = posHits > negHits ? "Positive" : negHits > posHits ? "Negative" : "Neutral";
+  
+  const updates: Partial<CallSession> = {
+    analyzed: true,
+    emotions,
+    concerns,
+    anonymizedSummary: "User reached out discussing " + concerns.join(" and ") + ". Volunteer provided support and validated their feelings. Emotions detected: " + emotions.join(", ") + ".",
+    sentiment
+  };
+  
+  _state = {
+    ..._state,
+    callSessions: _state.callSessions.map(c => c.id === callId ? { ...c, ...updates } : c)
+  };
+  persist(); notify();
+}
+
+export function queryNGOBrainLocal(query: string): string {
+  const lower = query.toLowerCase();
+  if (lower.includes("volunteer")) return `We currently have ${_state.volunteers.length} volunteers. ${_state.volunteers.filter(v => v.status === 'approved').length} are approved.`;
+  if (lower.includes("project")) return `We run ${_state.projects.length} active projects including Helpline and Workshops.`;
+  if (lower.includes("donat") || lower.includes("fund")) return `Total funds raised: ₹${_state.donations.reduce((s, d) => s + d.amount, 0)}.`;
+  return "Based on our records, we are actively supporting mental health through helplines, workshops, and peer groups. Ask me specific questions about volunteers, projects, or donations!";
+}
+
 // ━━━━━━━━━━━━━━━━━ Gemini API Integration ━━━━━━━━━━━━━━━━━
 
 async function callGemini(prompt: string): Promise<string> {
@@ -476,9 +606,72 @@ Return JSON with these fields:
   }
 }
 
-export async function chatWithAI(userMessage: string, context: string): Promise<string> {
+export async function analyzeCallAI(callId: string): Promise<void> {
   if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
-    return chatLocalFallback(userMessage);
+    analyzeCallLocal(callId);
+    return;
+  }
+  const call = _state.callSessions.find(c => c.id === callId);
+  if (!call) return;
+
+  try {
+    const prompt = `Analyze this mental health helpline transcript. Return ONLY valid JSON (no markdown, no code fences):
+Transcript: "${call.transcript}"
+
+Return JSON with these fields:
+- emotions (array of strings, e.g. ["Anxiety", "Fear", "Relief"])
+- concerns (array of strings, e.g. ["Financial stress", "Relationship issues"])
+- anonymizedSummary (string, 2-3 sentences summarizing the situation without PII)
+- sentiment (string: "Positive", "Neutral", or "Negative")`;
+    
+    const raw = await callGemini(prompt);
+    const cleaned = raw.replace(/```json\n?/g, "").replace(/```\n?/g, "").trim();
+    const result = JSON.parse(cleaned);
+
+    _state = {
+      ..._state,
+      callSessions: _state.callSessions.map(c => c.id === callId ? { 
+        ...c, 
+        analyzed: true,
+        emotions: result.emotions || [],
+        concerns: result.concerns || [],
+        anonymizedSummary: result.anonymizedSummary || "",
+        sentiment: result.sentiment || "Neutral"
+      } : c)
+    };
+    persist(); notify();
+  } catch {
+    analyzeCallLocal(callId);
+  }
+}
+
+export async function queryNGOBrainAI(query: string): Promise<string> {
+  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+    return queryNGOBrainLocal(query);
+  }
+  try {
+    const dbDump = JSON.stringify({
+      volunteers: _state.volunteers.length,
+      approved: _state.volunteers.filter(v => v.status === 'approved').length,
+      donations: _state.donations.reduce((s,d)=>s+d.amount, 0),
+      projects: _state.projects,
+      events: _state.events,
+      surveys: _state.surveys,
+    });
+    
+    const prompt = `You are the 'NGO Brain' AI for ListenInn Foundation. You have access to the entire NGO database. Answer the admin's query concisely and accurately using this data context:
+${dbDump}
+
+Admin Query: "${query}"`;
+    return await callGemini(prompt);
+  } catch {
+    return queryNGOBrainLocal(query);
+  }
+}
+
+export async function chatWithAI(userMessage: string, context: string, language: string = "English"): Promise<string> {
+  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+    return chatLocalFallback(userMessage, language);
   }
   try {
     const prompt = `You are the friendly AI assistant for ListenInn Foundation, an NGO that provides free, confidential mental health support including a 24/7 helpline, 1:1 counseling, support groups, listening sessions, youth wellbeing programs, and crisis care. You are warm, compassionate, and helpful.
@@ -487,10 +680,11 @@ Context of conversation so far: ${context}
 
 User says: "${userMessage}"
 
-Reply in a warm, concise manner (2-4 sentences max). If the user is in distress, gently guide them to the helpline (1-800-LISTEN-IN). Do not provide medical advice.`;
+Reply in a warm, concise manner (2-4 sentences max). If the user is in distress, gently guide them to the helpline (1-800-LISTEN-IN). Do not provide medical advice.
+CRITICAL: You MUST respond in ${language}.`;
     return await callGemini(prompt);
   } catch {
-    return chatLocalFallback(userMessage);
+    return chatLocalFallback(userMessage, language);
   }
 }
 
@@ -534,11 +728,20 @@ const FAQ_MAP: [RegExp, string][] = [
   [/(?:sad|depressed|anxious|scared|lonely|hurt|pain|suicid)/i, "I hear you, and I want you to know that your feelings are valid. 💜 Please reach out to our 24/7 helpline at 1-800-LISTEN-IN — a trained listener is waiting to talk with you right now. You don't have to go through this alone."],
 ];
 
-function chatLocalFallback(msg: string): string {
+function chatLocalFallback(msg: string, language: string): string {
+  let reply = "Thank you for reaching out! 💜 I can help you with information about our programs, volunteer registration, donations, or answer questions about ListenInn Foundation. What would you like to know?";
   for (const [regex, answer] of FAQ_MAP) {
-    if (regex.test(msg)) return answer;
+    if (regex.test(msg)) {
+      reply = answer;
+      break;
+    }
   }
-  return "Thank you for reaching out! 💜 I can help you with information about our programs, volunteer registration, donations, or answer questions about ListenInn Foundation. What would you like to know?";
+  
+  if (language !== "English") {
+    reply = `[Simulated ${language} Translation] ` + reply;
+  }
+  
+  return reply;
 }
 
 // ━━━━━━━━━━━━━━━━━ Programs Info ━━━━━━━━━━━━━━━━━
