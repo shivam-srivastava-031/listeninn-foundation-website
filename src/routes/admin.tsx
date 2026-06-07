@@ -1,0 +1,931 @@
+import { createFileRoute } from "@tanstack/react-router";
+import { useState, useEffect, useMemo, useCallback } from "react";
+import { PageShell } from "@/components/layout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { toast } from "sonner";
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+} from "recharts";
+import {
+  Users, Shield, Clock, DollarSign, Heart, Star, ArrowRight, CheckCircle2,
+  XCircle, AlertTriangle, Brain, Sparkles, Send, ChevronDown, ChevronUp,
+  Settings, Eye, UserCheck, ClipboardList, Bell, MessageSquare,
+  Loader2, KeyRound, ToggleLeft, ToggleRight, RefreshCw, Trash2,
+  TrendingUp, Target, Zap,
+} from "lucide-react";
+import {
+  type Volunteer, type AppState,
+  getState, subscribe, updateVolunteer, addParticipation, addReminder,
+  markReminderSent, updateSettings, updateProjectVolunteerCount,
+  screenVolunteerLocal, screenVolunteerAI, getProjectMatchScores,
+  testGeminiConnection, resetState,
+} from "@/lib/db";
+
+export const Route = createFileRoute("/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin Portal — ListenInn Foundation" },
+      { name: "description", content: "Manage volunteers, screen applications, match projects, track participation, and monitor donations for ListenInn Foundation." },
+    ],
+  }),
+  component: AdminPage,
+});
+
+// ━━━━━━━━━━━━━━━━━━━ Hook to sync state ━━━━━━━━━━━━━━━━━━━
+
+function useDB(): AppState {
+  const [state, setState] = useState(getState);
+  useEffect(() => subscribe(() => setState({ ...getState() })), []);
+  return state;
+}
+
+// ━━━━━━━━━━━━━━━━━━━ Tab types ━━━━━━━━━━━━━━━━━━━
+
+type Tab = "screening" | "matching" | "participation" | "reminders" | "logs" | "settings";
+
+const TABS: { key: Tab; label: string; icon: typeof Users }[] = [
+  { key: "screening", label: "Screening", icon: Shield },
+  { key: "matching", label: "Matching", icon: Target },
+  { key: "participation", label: "Participation", icon: ClipboardList },
+  { key: "reminders", label: "Reminders", icon: Bell },
+  { key: "logs", label: "Feedback & Donations", icon: MessageSquare },
+  { key: "settings", label: "Settings", icon: Settings },
+];
+
+// ━━━━━━━━━━━━━━━━━━━ Admin Page ━━━━━━━━━━━━━━━━━━━
+
+function AdminPage() {
+  const db = useDB();
+  const [tab, setTab] = useState<Tab>("screening");
+
+  const totalHours = db.participationLogs.reduce((s, l) => s + l.hours, 0);
+  const totalDonations = db.donations.reduce((s, d) => s + d.amount, 0);
+  const approvedVols = db.volunteers.filter((v) => v.status === "approved").length;
+  const matchedVols = db.volunteers.filter((v) => v.matchedProjectId).length;
+  const matchRate = approvedVols > 0 ? Math.round((matchedVols / approvedVols) * 100) : 0;
+  const avgRating = db.feedbacks.length > 0
+    ? (db.feedbacks.reduce((s, f) => s + f.rating, 0) / db.feedbacks.length).toFixed(1)
+    : "—";
+
+  return (
+    <PageShell>
+      {/* Hero header */}
+      <section className="bg-gradient-hero pt-16 pb-10">
+        <div className="container mx-auto px-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+            <div>
+              <p className="font-script text-primary text-2xl">Admin Portal</p>
+              <h1 className="text-3xl md:text-4xl font-extrabold tracking-tight">
+                Volunteer <span className="text-gradient-brand">Management</span>
+              </h1>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="border-primary/30 text-primary gap-1">
+                <Brain className="h-3 w-3" />
+                {db.settings.useGemini ? "Gemini AI Active" : "Simulated AI"}
+              </Badge>
+            </div>
+          </div>
+
+          {/* Summary Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+            {[
+              { label: "Volunteers", value: db.volunteers.length.toString(), icon: Users, color: "text-primary" },
+              { label: "Match Rate", value: `${matchRate}%`, icon: Target, color: "text-accent" },
+              { label: "Total Hours", value: totalHours.toString(), icon: Clock, color: "text-primary" },
+              { label: "Funds Raised", value: `₹${totalDonations.toLocaleString()}`, icon: DollarSign, color: "text-accent" },
+              { label: "Avg Rating", value: avgRating, icon: Star, color: "text-yellow-500" },
+            ].map((c) => (
+              <div
+                key={c.label}
+                className="rounded-2xl border border-border bg-card p-5 shadow-card hover:shadow-soft transition-shadow"
+              >
+                <c.icon className={`h-5 w-5 ${c.color} mb-2`} />
+                <div className="text-2xl font-bold text-gradient-brand">{c.value}</div>
+                <div className="text-xs text-muted-foreground mt-0.5">{c.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* Tab navigation */}
+      <section className="bg-card border-b border-border sticky top-[57px] z-40">
+        <div className="container mx-auto px-6">
+          <nav className="flex gap-1 overflow-x-auto py-2 -mb-px" role="tablist">
+            {TABS.map((t) => (
+              <button
+                key={t.key}
+                role="tab"
+                aria-selected={tab === t.key}
+                onClick={() => setTab(t.key)}
+                className={`flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-lg whitespace-nowrap transition-all ${
+                  tab === t.key
+                    ? "bg-gradient-brand text-primary-foreground shadow-soft"
+                    : "text-muted-foreground hover:text-foreground hover:bg-muted"
+                }`}
+              >
+                <t.icon className="h-4 w-4" />
+                {t.label}
+              </button>
+            ))}
+          </nav>
+        </div>
+      </section>
+
+      {/* Tab Content */}
+      <section className="bg-background py-10 min-h-[60vh]">
+        <div className="container mx-auto px-6">
+          {tab === "screening" && <ScreeningPanel db={db} />}
+          {tab === "matching" && <MatchingPanel db={db} />}
+          {tab === "participation" && <ParticipationPanel db={db} />}
+          {tab === "reminders" && <RemindersPanel db={db} />}
+          {tab === "logs" && <LogsPanel db={db} />}
+          {tab === "settings" && <SettingsPanel db={db} />}
+        </div>
+      </section>
+    </PageShell>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 1. SCREENING PANEL ━━━━━━━━━━━━━━━━━━━
+
+function ScreeningPanel({ db }: { db: AppState }) {
+  const pending = db.volunteers.filter((v) => v.status === "pending");
+  const reviewed = db.volunteers.filter((v) => v.status !== "pending");
+  const [expanded, setExpanded] = useState<string | null>(null);
+  const [screening, setScreening] = useState<string | null>(null);
+
+  const runScreening = async (vol: Volunteer) => {
+    setScreening(vol.id);
+    const result = await screenVolunteerAI(vol);
+    updateVolunteer(vol.id, { screening: result });
+    setScreening(null);
+    toast.success(`AI screening complete for ${vol.name}`);
+  };
+
+  const approve = (vol: Volunteer) => {
+    updateVolunteer(vol.id, { status: "approved" });
+    toast.success(`${vol.name} has been approved! 🎉`);
+  };
+
+  const reject = (vol: Volunteer) => {
+    updateVolunteer(vol.id, { status: "rejected" });
+    toast.info(`${vol.name} has been declined.`);
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Pending */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5 text-yellow-500" />
+          Pending Applications ({pending.length})
+        </h2>
+        {pending.length === 0 ? (
+          <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
+            <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-green-400" />
+            <p>All applications have been reviewed! 🎉</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {pending.map((vol) => (
+              <div key={vol.id} className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+                {/* Header row */}
+                <div
+                  className="flex items-center gap-4 p-5 cursor-pointer hover:bg-muted/30 transition-colors"
+                  onClick={() => setExpanded(expanded === vol.id ? null : vol.id)}
+                >
+                  <div className="h-10 w-10 rounded-full bg-gradient-brand flex items-center justify-center text-primary-foreground font-bold text-lg flex-shrink-0">
+                    {vol.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">{vol.name}</div>
+                    <div className="text-xs text-muted-foreground">{vol.email} · {new Date(vol.submittedAt).toLocaleDateString()}</div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <Badge variant="outline" className="border-yellow-300 text-yellow-600 text-xs">Pending</Badge>
+                    {expanded === vol.id ? <ChevronUp className="h-4 w-4 text-muted-foreground" /> : <ChevronDown className="h-4 w-4 text-muted-foreground" />}
+                  </div>
+                </div>
+
+                {/* Expanded detail */}
+                {expanded === vol.id && (
+                  <div className="border-t border-border p-5 space-y-4 bg-muted/10">
+                    <div className="grid md:grid-cols-3 gap-4">
+                      <div>
+                        <div className="text-xs text-muted-foreground font-medium mb-1">Skills</div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {vol.skills.map((s) => <Badge key={s} variant="secondary" className="text-xs">{s}</Badge>)}
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground font-medium mb-1">Availability</div>
+                        <p className="text-sm">{vol.availability}</p>
+                      </div>
+                      <div>
+                        <div className="text-xs text-muted-foreground font-medium mb-1">Submitted</div>
+                        <p className="text-sm">{new Date(vol.submittedAt).toLocaleString()}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <div className="text-xs text-muted-foreground font-medium mb-1">Motivation</div>
+                      <p className="text-sm leading-relaxed bg-card rounded-xl p-4 border border-border italic">"{vol.motivation}"</p>
+                    </div>
+
+                    {/* AI Screening Result */}
+                    {vol.screening ? (
+                      <div className="rounded-xl border border-accent/30 bg-accent/5 p-5 space-y-4">
+                        <div className="flex items-center gap-2 text-accent font-semibold">
+                          <Brain className="h-4 w-4" /> AI Screening Report
+                        </div>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <ScoreCard label="Fit Score" value={vol.screening.fitScore} />
+                          <ScoreCard label="Empathy" value={vol.screening.empathyRating} />
+                          <div className="col-span-2">
+                            <div className="text-xs text-muted-foreground font-medium mb-1">Recommended Projects</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {vol.screening.recommendedProjects.map((p) => (
+                                <Badge key={p} className="bg-gradient-brand text-primary-foreground text-xs">{p}</Badge>
+                              ))}
+                            </div>
+                          </div>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground font-medium mb-1">Insights</div>
+                          <p className="text-sm leading-relaxed">{vol.screening.insights}</p>
+                        </div>
+                        <div>
+                          <div className="text-xs text-muted-foreground font-medium mb-1">Risk Assessment</div>
+                          <p className="text-sm leading-relaxed text-destructive/80">{vol.screening.risks}</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <Button
+                        onClick={() => runScreening(vol)}
+                        disabled={screening === vol.id}
+                        className="bg-gradient-brand text-primary-foreground hover:opacity-90"
+                      >
+                        {screening === vol.id ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Screening...</> : <><Brain className="mr-2 h-4 w-4" /> Run AI Screening</>}
+                      </Button>
+                    )}
+
+                    {/* Action buttons */}
+                    <div className="flex gap-3 pt-2">
+                      <Button onClick={() => approve(vol)} className="bg-green-600 hover:bg-green-700 text-white">
+                        <CheckCircle2 className="mr-2 h-4 w-4" /> Approve
+                      </Button>
+                      <Button onClick={() => reject(vol)} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+                        <XCircle className="mr-2 h-4 w-4" /> Reject
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* Reviewed History */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <UserCheck className="h-5 w-5 text-green-500" />
+          Reviewed ({reviewed.length})
+        </h2>
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left">
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Name</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Fit Score</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Empathy</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Project</th>
+                </tr>
+              </thead>
+              <tbody>
+                {reviewed.map((vol) => (
+                  <tr key={vol.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3 font-medium">{vol.name}</td>
+                    <td className="px-5 py-3">
+                      <Badge className={vol.status === "approved" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                        {vol.status}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3 font-semibold text-gradient-brand">{vol.screening?.fitScore ?? "—"}</td>
+                    <td className="px-5 py-3 font-semibold text-gradient-brand">{vol.screening?.empathyRating ?? "—"}</td>
+                    <td className="px-5 py-3 text-muted-foreground">
+                      {vol.matchedProjectId
+                        ? db.projects.find((p) => p.id === vol.matchedProjectId)?.title ?? "—"
+                        : <span className="text-xs italic">Unmatched</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ScoreCard({ label, value }: { label: string; value: number }) {
+  const color = value >= 80 ? "text-green-600" : value >= 60 ? "text-yellow-600" : "text-red-500";
+  return (
+    <div className="rounded-xl border border-border bg-card p-3 text-center">
+      <div className={`text-2xl font-bold ${color}`}>{value}</div>
+      <div className="text-[10px] text-muted-foreground mt-0.5">{label}</div>
+      <Progress value={value} className="mt-2 h-1.5" />
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 2. MATCHING PANEL ━━━━━━━━━━━━━━━━━━━
+
+function MatchingPanel({ db }: { db: AppState }) {
+  const unmatched = db.volunteers.filter((v) => v.status === "approved" && !v.matchedProjectId);
+  const [selected, setSelected] = useState<string | null>(null);
+  const selectedVol = db.volunteers.find((v) => v.id === selected);
+
+  const matchScores = useMemo(() => {
+    if (!selectedVol) return [];
+    return getProjectMatchScores(selectedVol);
+  }, [selectedVol]);
+
+  const matchToProject = (volId: string, projectId: string) => {
+    updateVolunteer(volId, { matchedProjectId: projectId });
+    updateProjectVolunteerCount(projectId, 1);
+    const vol = db.volunteers.find((v) => v.id === volId);
+    const proj = db.projects.find((p) => p.id === projectId);
+    toast.success(`${vol?.name} matched to ${proj?.title}! 🎯`);
+    setSelected(null);
+  };
+
+  return (
+    <div className="space-y-8">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Target className="h-5 w-5 text-accent" />
+        Project Matching ({unmatched.length} unmatched)
+      </h2>
+
+      {unmatched.length === 0 ? (
+        <div className="rounded-2xl border border-border bg-card p-8 text-center text-muted-foreground">
+          <CheckCircle2 className="h-10 w-10 mx-auto mb-3 text-green-400" />
+          <p>All approved volunteers have been matched to projects! 🎉</p>
+        </div>
+      ) : (
+        <div className="grid lg:grid-cols-2 gap-6">
+          {/* Left: unmatched volunteers */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium text-muted-foreground">Select a volunteer to see AI matching recommendations</h3>
+            {unmatched.map((vol) => (
+              <button
+                key={vol.id}
+                onClick={() => setSelected(vol.id)}
+                className={`w-full text-left rounded-2xl border p-5 transition-all ${
+                  selected === vol.id
+                    ? "border-accent bg-accent/5 shadow-soft"
+                    : "border-border bg-card hover:shadow-card"
+                }`}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-brand flex items-center justify-center text-primary-foreground font-bold flex-shrink-0">
+                    {vol.name[0]}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-semibold truncate">{vol.name}</div>
+                    <div className="text-xs text-muted-foreground">{vol.skills.slice(0, 3).join(", ")}</div>
+                  </div>
+                  <ArrowRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                </div>
+              </button>
+            ))}
+          </div>
+
+          {/* Right: match scores */}
+          <div>
+            {selectedVol ? (
+              <div className="space-y-3">
+                <h3 className="text-sm font-medium text-muted-foreground">AI Match Recommendations for {selectedVol.name}</h3>
+                {matchScores.map((ms) => {
+                  const proj = db.projects.find((p) => p.id === ms.projectId)!;
+                  return (
+                    <div key={ms.projectId} className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <div className="font-semibold">{ms.projectTitle}</div>
+                          <div className="text-xs text-muted-foreground">{proj.currentVolunteers}/{proj.targetVolunteers} volunteers</div>
+                        </div>
+                        <div className={`text-2xl font-bold ${ms.score >= 70 ? "text-green-600" : ms.score >= 40 ? "text-yellow-600" : "text-red-500"}`}>
+                          {ms.score}%
+                        </div>
+                      </div>
+                      <Progress value={ms.score} className="h-2" />
+                      <p className="text-sm text-muted-foreground leading-relaxed">{ms.reason}</p>
+                      <Button
+                        onClick={() => matchToProject(selectedVol.id, ms.projectId)}
+                        size="sm"
+                        className="bg-gradient-brand text-primary-foreground hover:opacity-90"
+                      >
+                        <Zap className="mr-1 h-3 w-3" /> Match to this project
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-border p-8 text-center text-muted-foreground">
+                <Target className="h-10 w-10 mx-auto mb-3 opacity-40" />
+                <p className="text-sm">Select a volunteer to see AI matching</p>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Projects overview */}
+      <div>
+        <h3 className="text-lg font-bold mb-4">Project Staffing Overview</h3>
+        <div className="grid md:grid-cols-2 gap-4">
+          {db.projects.map((p) => {
+            const pct = Math.round((p.currentVolunteers / p.targetVolunteers) * 100);
+            return (
+              <div key={p.id} className="rounded-2xl border border-border bg-card p-5 shadow-card">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="font-semibold">{p.title}</div>
+                  <Badge variant="outline" className={pct >= 80 ? "border-green-300 text-green-600" : pct >= 50 ? "border-yellow-300 text-yellow-600" : "border-red-300 text-red-600"}>
+                    {p.currentVolunteers}/{p.targetVolunteers}
+                  </Badge>
+                </div>
+                <Progress value={pct} className="h-2 mb-2" />
+                <p className="text-xs text-muted-foreground">{p.description}</p>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 3. PARTICIPATION PANEL ━━━━━━━━━━━━━━━━━━━
+
+function ParticipationPanel({ db }: { db: AppState }) {
+  const [showLogForm, setShowLogForm] = useState(false);
+  const [logVolId, setLogVolId] = useState("");
+  const [logHours, setLogHours] = useState("");
+  const [logDesc, setLogDesc] = useState("");
+
+  const activeVols = db.volunteers.filter((v) => v.status === "approved" && v.matchedProjectId);
+
+  const handleLogSubmit = () => {
+    if (!logVolId || !logHours || !logDesc.trim()) { toast.error("Fill in all fields."); return; }
+    addParticipation({ volunteerId: logVolId, date: new Date().toISOString(), hours: parseFloat(logHours), description: logDesc, status: "completed" });
+    toast.success("Hours logged! 📋");
+    setShowLogForm(false); setLogVolId(""); setLogHours(""); setLogDesc("");
+  };
+
+  // Chart: hours per project
+  const projectHours = useMemo(() => {
+    const map: Record<string, number> = {};
+    db.participationLogs.forEach((log) => {
+      const vol = db.volunteers.find((v) => v.id === log.volunteerId);
+      const projId = vol?.matchedProjectId;
+      if (projId) {
+        const proj = db.projects.find((p) => p.id === projId);
+        const name = proj?.title ?? "Unknown";
+        map[name] = (map[name] || 0) + log.hours;
+      }
+    });
+    return Object.entries(map).map(([name, hours]) => ({ name: name.length > 20 ? name.slice(0, 18) + "…" : name, hours }));
+  }, [db]);
+
+  // Chart: top volunteers
+  const topVols = useMemo(() => {
+    const map: Record<string, number> = {};
+    db.participationLogs.forEach((log) => {
+      const vol = db.volunteers.find((v) => v.id === log.volunteerId);
+      if (vol) map[vol.name] = (map[vol.name] || 0) + log.hours;
+    });
+    return Object.entries(map).map(([name, hours]) => ({ name, hours })).sort((a, b) => b.hours - a.hours).slice(0, 5);
+  }, [db]);
+
+  const COLORS = ["#6B5B95", "#1FA39B", "#E07A5F", "#81B29A", "#F2CC8F"];
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <ClipboardList className="h-5 w-5 text-primary" />
+          Participation Tracker
+        </h2>
+        <Button onClick={() => setShowLogForm(!showLogForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          <Clock className="mr-2 h-4 w-4" /> Log Hours
+        </Button>
+      </div>
+
+      {/* Log form */}
+      {showLogForm && (
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft space-y-4">
+          <h3 className="font-semibold">Log Participation Hours</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label htmlFor="log-vol">Volunteer</Label>
+              <select id="log-vol" value={logVolId} onChange={(e) => setLogVolId(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select volunteer...</option>
+                {activeVols.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="log-hours">Hours</Label>
+              <Input id="log-hours" type="number" min="0.5" step="0.5" value={logHours} onChange={(e) => setLogHours(e.target.value)} placeholder="e.g. 4" />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="log-desc">Description</Label>
+              <Input id="log-desc" value={logDesc} onChange={(e) => setLogDesc(e.target.value)} placeholder="What was done?" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleLogSubmit} className="bg-gradient-brand text-primary-foreground hover:opacity-90"><CheckCircle2 className="mr-2 h-4 w-4" /> Save</Button>
+            <Button variant="outline" onClick={() => setShowLogForm(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Charts */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <h3 className="font-semibold mb-4 flex items-center gap-2"><TrendingUp className="h-4 w-4 text-accent" /> Hours by Project</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={projectHours} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="oklch(0.9 0.025 295)" />
+              <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+              <YAxis tick={{ fontSize: 11 }} />
+              <Tooltip />
+              <Bar dataKey="hours" radius={[6, 6, 0, 0]}>
+                {projectHours.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Bar>
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+          <h3 className="font-semibold mb-4 flex items-center gap-2"><Users className="h-4 w-4 text-primary" /> Top Volunteers</h3>
+          <ResponsiveContainer width="100%" height={280}>
+            <PieChart>
+              <Pie data={topVols} dataKey="hours" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, hours }) => `${name}: ${hours}h`} labelLine={false}>
+                {topVols.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+              </Pie>
+              <Tooltip />
+            </PieChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
+
+      {/* Logs table */}
+      <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b border-border bg-muted/30 text-left">
+                <th className="px-5 py-3 font-medium text-muted-foreground">Volunteer</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Hours</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Description</th>
+                <th className="px-5 py-3 font-medium text-muted-foreground">Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {db.participationLogs.slice().reverse().map((log) => {
+                const vol = db.volunteers.find((v) => v.id === log.volunteerId);
+                return (
+                  <tr key={log.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3 font-medium">{vol?.name ?? "Unknown"}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{new Date(log.date).toLocaleDateString()}</td>
+                    <td className="px-5 py-3 font-semibold text-gradient-brand">{log.hours}h</td>
+                    <td className="px-5 py-3 text-muted-foreground max-w-[200px] truncate">{log.description}</td>
+                    <td className="px-5 py-3">
+                      <Badge className={log.status === "completed" ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"}>
+                        {log.status}
+                      </Badge>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 4. REMINDERS PANEL ━━━━━━━━━━━━━━━━━━━
+
+function RemindersPanel({ db }: { db: AppState }) {
+  const [showForm, setShowForm] = useState(false);
+  const [remVolId, setRemVolId] = useState("");
+  const [remType, setRemType] = useState<"shift_reminder" | "training_notice" | "check_in">("shift_reminder");
+  const [remMsg, setRemMsg] = useState("");
+
+  const activeVols = db.volunteers.filter((v) => v.status === "approved");
+
+  const sendReminder = (id: string) => {
+    markReminderSent(id);
+    const rem = db.reminders.find((r) => r.id === id);
+    toast.success(`📬 Reminder sent to ${rem?.volunteerName}: "${rem?.message.slice(0, 50)}..."`);
+  };
+
+  const createReminder = () => {
+    if (!remVolId || !remMsg.trim()) { toast.error("Please fill in all fields."); return; }
+    const vol = db.volunteers.find((v) => v.id === remVolId);
+    addReminder({
+      volunteerId: remVolId,
+      volunteerName: vol?.name ?? "Unknown",
+      type: remType,
+      message: remMsg,
+      date: new Date().toISOString(),
+      status: "scheduled",
+    });
+    toast.success("Reminder scheduled! 🔔");
+    setShowForm(false); setRemVolId(""); setRemMsg("");
+  };
+
+  const typeLabels: Record<string, { label: string; color: string }> = {
+    shift_reminder: { label: "Shift", color: "bg-blue-100 text-blue-700" },
+    training_notice: { label: "Training", color: "bg-purple-100 text-purple-700" },
+    check_in: { label: "Check-in", color: "bg-green-100 text-green-700" },
+  };
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          <Bell className="h-5 w-5 text-accent" /> Reminders Hub
+        </h2>
+        <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          <Send className="mr-2 h-4 w-4" /> New Reminder
+        </Button>
+      </div>
+
+      {/* Create form */}
+      {showForm && (
+        <div className="rounded-2xl border border-border bg-card p-6 shadow-soft space-y-4">
+          <h3 className="font-semibold">Schedule a Reminder</h3>
+          <div className="grid md:grid-cols-3 gap-4">
+            <div className="space-y-1.5">
+              <Label>Volunteer</Label>
+              <select value={remVolId} onChange={(e) => setRemVolId(e.target.value)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="">Select...</option>
+                {activeVols.map((v) => <option key={v.id} value={v.id}>{v.name}</option>)}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Type</Label>
+              <select value={remType} onChange={(e) => setRemType(e.target.value as typeof remType)} className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm">
+                <option value="shift_reminder">Shift Reminder</option>
+                <option value="training_notice">Training Notice</option>
+                <option value="check_in">Check-in</option>
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Message</Label>
+              <Textarea value={remMsg} onChange={(e) => setRemMsg(e.target.value)} placeholder="Reminder message..." rows={2} className="resize-none" />
+            </div>
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={createReminder} className="bg-gradient-brand text-primary-foreground hover:opacity-90"><Bell className="mr-2 h-4 w-4" /> Schedule</Button>
+            <Button variant="outline" onClick={() => setShowForm(false)}>Cancel</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Reminders list */}
+      <div className="space-y-3">
+        {db.reminders.slice().reverse().map((rem) => {
+          const tl = typeLabels[rem.type] ?? typeLabels.check_in;
+          return (
+            <div key={rem.id} className="rounded-2xl border border-border bg-card p-5 shadow-card flex items-start gap-4">
+              <div className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center ${rem.status === "sent" ? "bg-green-100" : "bg-yellow-100"}`}>
+                {rem.status === "sent" ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <Bell className="h-5 w-5 text-yellow-600" />}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2 mb-1 flex-wrap">
+                  <span className="font-semibold text-sm">{rem.volunteerName}</span>
+                  <Badge className={`text-[10px] ${tl.color}`}>{tl.label}</Badge>
+                  <Badge variant="outline" className={`text-[10px] ${rem.status === "sent" ? "border-green-300 text-green-600" : "border-yellow-300 text-yellow-600"}`}>
+                    {rem.status}
+                  </Badge>
+                </div>
+                <p className="text-sm text-muted-foreground leading-relaxed">{rem.message}</p>
+                <p className="text-xs text-muted-foreground mt-1">{new Date(rem.date).toLocaleString()}</p>
+              </div>
+              {rem.status === "scheduled" && (
+                <Button size="sm" onClick={() => sendReminder(rem.id)} className="bg-gradient-brand text-primary-foreground hover:opacity-90 flex-shrink-0">
+                  <Send className="mr-1 h-3 w-3" /> Send Now
+                </Button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 5. LOGS PANEL ━━━━━━━━━━━━━━━━━━━
+
+function LogsPanel({ db }: { db: AppState }) {
+  const sentimentColors: Record<string, string> = {
+    Positive: "bg-green-100 text-green-700",
+    Neutral: "bg-gray-100 text-gray-600",
+    Negative: "bg-red-100 text-red-700",
+  };
+
+  return (
+    <div className="space-y-8">
+      {/* Feedback */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <MessageSquare className="h-5 w-5 text-primary" /> Feedback ({db.feedbacks.length})
+        </h2>
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left">
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Name</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Rating</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Comment</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Sentiment</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {db.feedbacks.slice().reverse().map((fb) => (
+                  <tr key={fb.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3 font-medium">{fb.name}</td>
+                    <td className="px-5 py-3">
+                      <span className="text-yellow-500">{"★".repeat(fb.rating)}</span>
+                      <span className="text-gray-300">{"★".repeat(5 - fb.rating)}</span>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground max-w-[300px]">
+                      <span className="line-clamp-2">{fb.comment}</span>
+                    </td>
+                    <td className="px-5 py-3">
+                      <Badge className={sentimentColors[fb.aiSentiment] ?? sentimentColors.Neutral}>
+                        {fb.aiSentiment}
+                      </Badge>
+                    </td>
+                    <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(fb.timestamp).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Donations */}
+      <div>
+        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
+          <Heart className="h-5 w-5 text-accent" /> Donations ({db.donations.length})
+          <span className="text-sm font-normal text-muted-foreground ml-auto">
+            Total: ₹{db.donations.reduce((s, d) => s + d.amount, 0).toLocaleString()}
+          </span>
+        </h2>
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left">
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Name</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Email</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Amount</th>
+                  <th className="px-5 py-3 font-medium text-muted-foreground">Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {db.donations.slice().reverse().map((d) => (
+                  <tr key={d.id} className="border-b border-border/50 hover:bg-muted/20 transition-colors">
+                    <td className="px-5 py-3 font-medium">{d.name}</td>
+                    <td className="px-5 py-3 text-muted-foreground">{d.email || "—"}</td>
+                    <td className="px-5 py-3 font-bold text-gradient-brand">₹{d.amount.toLocaleString()}</td>
+                    <td className="px-5 py-3 text-muted-foreground text-xs">{new Date(d.timestamp).toLocaleDateString()}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ 6. SETTINGS PANEL ━━━━━━━━━━━━━━━━━━━
+
+function SettingsPanel({ db }: { db: AppState }) {
+  const [apiKey, setApiKey] = useState(db.settings.geminiApiKey);
+  const [testing, setTesting] = useState(false);
+
+  const saveKey = () => {
+    updateSettings({ geminiApiKey: apiKey });
+    toast.success("API key saved! 🔑");
+  };
+
+  const toggleGemini = () => {
+    const newVal = !db.settings.useGemini;
+    if (newVal && !db.settings.geminiApiKey) { toast.error("Please save an API key first."); return; }
+    updateSettings({ useGemini: newVal });
+    toast.success(newVal ? "Gemini AI activated! 🚀" : "Switched to simulated AI mode.");
+  };
+
+  const testConnection = async () => {
+    setTesting(true);
+    const ok = await testGeminiConnection(apiKey);
+    setTesting(false);
+    if (ok) toast.success("Connection successful! ✅");
+    else toast.error("Connection failed. Please check your API key.");
+  };
+
+  const handleReset = useCallback(() => {
+    resetState();
+    toast.success("All data has been reset to defaults. 🔄");
+  }, []);
+
+  return (
+    <div className="max-w-2xl space-y-8">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        <Settings className="h-5 w-5 text-primary" /> AI Settings
+      </h2>
+
+      {/* API Key */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-card space-y-4">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5 text-accent" />
+          <h3 className="font-semibold">Google Gemini API Key</h3>
+        </div>
+        <p className="text-sm text-muted-foreground">
+          Enter your Gemini API key to enable real AI-powered screening, matching, and chat responses. Without a key, the system uses a highly realistic simulated AI engine.
+        </p>
+        <div className="flex gap-2">
+          <Input
+            type="password"
+            value={apiKey}
+            onChange={(e) => setApiKey(e.target.value)}
+            placeholder="AIza..."
+            className="flex-1"
+          />
+          <Button onClick={saveKey} variant="outline"><CheckCircle2 className="mr-2 h-4 w-4" /> Save</Button>
+        </div>
+        <Button onClick={testConnection} disabled={testing || !apiKey} variant="outline" size="sm">
+          {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
+          Test Connection
+        </Button>
+      </div>
+
+      {/* Toggle */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
+        <div className="flex items-center justify-between">
+          <div>
+            <h3 className="font-semibold flex items-center gap-2">
+              <Brain className="h-5 w-5 text-primary" />
+              AI Mode
+            </h3>
+            <p className="text-sm text-muted-foreground mt-1">
+              {db.settings.useGemini ? "Using Google Gemini 2.0 Flash for real AI responses." : "Using simulated AI engine with heuristic analysis."}
+            </p>
+          </div>
+          <button onClick={toggleGemini} className="flex-shrink-0">
+            {db.settings.useGemini
+              ? <ToggleRight className="h-10 w-10 text-green-500" />
+              : <ToggleLeft className="h-10 w-10 text-muted-foreground" />}
+          </button>
+        </div>
+      </div>
+
+      {/* Reset */}
+      <div className="rounded-2xl border border-red-200 bg-red-50/50 p-6 space-y-3">
+        <h3 className="font-semibold flex items-center gap-2 text-red-700">
+          <Trash2 className="h-5 w-5" />
+          Reset All Data
+        </h3>
+        <p className="text-sm text-red-600/80">
+          This will clear all volunteers, donations, feedback, and participation logs — resetting everything to the default mock data.
+        </p>
+        <Button onClick={handleReset} variant="outline" className="border-red-300 text-red-600 hover:bg-red-100">
+          <RefreshCw className="mr-2 h-4 w-4" /> Reset to Defaults
+        </Button>
+      </div>
+    </div>
+  );
+}

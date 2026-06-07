@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/sonner";
 import { Outlet, Link, createRootRouteWithContext, useRouter, ScrollRestoration } from "@tanstack/react-router";
+import { AiChatWidget } from "@/components/AiChatWidget";
 
 function NotFoundComponent() {
   return (
@@ -73,6 +74,7 @@ function RootComponent() {
       <ScrollRestoration />
       <Outlet />
       <Toaster position="bottom-right" richColors />
+      <AiChatWidget />
     </QueryClientProvider>
   );
 }

@@ -1,7 +1,7 @@
 import { Link, useLocation } from "@tanstack/react-router";
 import logo from "@/assets/listeninn-logo.png";
 import { Button } from "@/components/ui/button";
-import { Phone, Instagram, Menu, X } from "lucide-react";
+import { Phone, Instagram, Menu, X, Settings } from "lucide-react";
 import { useState } from "react";
 
 export function WaveTop() {
@@ -82,6 +82,13 @@ export function Header() {
           ))}
         </nav>
         <div className="flex items-center gap-3">
+          <Link
+            to="/admin"
+            className="hidden md:inline-flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+            aria-label="Admin Portal"
+          >
+            <Settings className="h-4 w-4" />
+          </Link>
           <Button
             asChild
             size="sm"
@@ -153,6 +160,7 @@ export function Footer() {
               <li><a href="/#vision" className="hover:text-primary transition-colors">Vision</a></li>
               <li><a href="/#our-work" className="hover:text-primary transition-colors">Our Work</a></li>
               <li><a href="/about" className="hover:text-primary transition-colors">About Us</a></li>
+              <li><a href="/admin" className="hover:text-primary transition-colors">Admin Portal</a></li>
             </ul>
           </div>
 
