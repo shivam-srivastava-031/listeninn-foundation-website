@@ -43,6 +43,7 @@ const NAV = [
   { to: "/get-involved", label: "Get Involved" },
   { to: "/faq", label: "FAQ" },
   { to: "/helpline", label: "Helpline" },
+  { to: "/connect", label: "Connect" },
   { to: "/contact", label: "Contact" },
 ] as const;
 

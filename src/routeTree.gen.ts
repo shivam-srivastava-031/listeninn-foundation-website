@@ -15,6 +15,7 @@ import { Route as HelplineRouteImport } from './routes/helpline'
 import { Route as GetInvolvedRouteImport } from './routes/get-involved'
 import { Route as FaqRouteImport } from './routes/faq'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
@@ -49,6 +50,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ConnectRoute = ConnectRouteImport.update({
+  id: '/connect',
+  path: '/connect',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AdminRoute = AdminRouteImport.update({
   id: '/admin',
   path: '/admin',
@@ -69,6 +75,7 @@ export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
@@ -80,6 +87,7 @@ export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
@@ -92,6 +100,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/admin': typeof AdminRoute
+  '/connect': typeof ConnectRoute
   '/contact': typeof ContactRoute
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
@@ -105,6 +114,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/connect'
     | '/contact'
     | '/faq'
     | '/get-involved'
@@ -116,6 +126,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/connect'
     | '/contact'
     | '/faq'
     | '/get-involved'
@@ -127,6 +138,7 @@ export interface FileRouteTypes {
     | '/'
     | '/about'
     | '/admin'
+    | '/connect'
     | '/contact'
     | '/faq'
     | '/get-involved'
@@ -139,6 +151,7 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
   AdminRoute: typeof AdminRoute
+  ConnectRoute: typeof ConnectRoute
   ContactRoute: typeof ContactRoute
   FaqRoute: typeof FaqRoute
   GetInvolvedRoute: typeof GetInvolvedRoute
@@ -191,6 +204,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/connect': {
+      id: '/connect'
+      path: '/connect'
+      fullPath: '/connect'
+      preLoaderRoute: typeof ConnectRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/admin': {
       id: '/admin'
       path: '/admin'
@@ -219,6 +239,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
   AdminRoute: AdminRoute,
+  ConnectRoute: ConnectRoute,
   ContactRoute: ContactRoute,
   FaqRoute: FaqRoute,
   GetInvolvedRoute: GetInvolvedRoute,
