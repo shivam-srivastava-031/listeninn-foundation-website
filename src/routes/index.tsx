@@ -76,8 +76,8 @@ function Hero() {
               asChild
               className="bg-gradient-brand text-primary-foreground shadow-soft hover:opacity-90 h-12 px-6 text-base"
             >
-              <Link to="/services">
-                Start Listening to Yourself
+              <Link to="/connect">
+                Connect With Us
                 <ArrowRight className="ml-2 h-4 w-4" />
               </Link>
             </Button>
@@ -486,8 +486,8 @@ function ContactSection() {
                   asChild
                   className="bg-white text-primary hover:bg-white/90 h-12 px-6 shadow-soft"
                 >
-                  <Link to="/contact">
-                    <Mail className="mr-2 h-4 w-4" /> Contact Us
+                  <Link to="/connect">
+                    <Heart className="mr-2 h-4 w-4" /> Share Your Story
                   </Link>
                 </Button>
                 <Button
