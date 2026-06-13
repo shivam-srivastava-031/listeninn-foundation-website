@@ -327,6 +327,7 @@ function ConnectPage() {
                       id="cf-preferred-name"
                       name="preferred_name"
                       required
+                      maxLength={100}
                       placeholder="Enter your preferred name"
                       className="connect-input connect-input-has-icon"
                     />
@@ -339,6 +340,7 @@ function ConnectPage() {
                   <input
                     id="cf-full-name"
                     name="full_name"
+                    maxLength={100}
                     placeholder="Enter your full name"
                     className="connect-input"
                   />
@@ -367,6 +369,7 @@ function ConnectPage() {
                       id="cf-email"
                       name="email"
                       type="email"
+                      maxLength={100}
                       placeholder="Enter your email"
                       className="connect-input connect-input-has-icon"
                     />
@@ -383,6 +386,7 @@ function ConnectPage() {
                       name="phone"
                       type="tel"
                       required
+                      maxLength={20}
                       placeholder="Enter your number"
                       className="connect-input connect-input-has-icon"
                     />
@@ -398,6 +402,7 @@ function ConnectPage() {
                       id="cf-city"
                       name="city"
                       required
+                      maxLength={50}
                       placeholder="Enter your city"
                       className="connect-input connect-input-has-icon"
                     />
@@ -413,6 +418,7 @@ function ConnectPage() {
                       id="cf-state"
                       name="state"
                       required
+                      maxLength={50}
                       placeholder="Enter your state"
                       className="connect-input connect-input-has-icon"
                     />
@@ -455,6 +461,7 @@ function ConnectPage() {
                         type="text"
                         placeholder="Please specify"
                         value={otherTopic}
+                        maxLength={50}
                         onChange={(e) => { e.stopPropagation(); setOtherTopic(e.target.value); }}
                         onClick={(e) => e.stopPropagation()}
                         className="connect-chip-other-input"

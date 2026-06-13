@@ -9,7 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
 import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,
+  PieChart, Pie, Cell, LineChart, Line,
 } from "recharts";
 import {
   Users, Shield, Clock, DollarSign, Heart, Star, ArrowRight, CheckCircle2,
@@ -17,19 +18,21 @@ import {
   Settings, Eye, UserCheck, ClipboardList, Bell, MessageSquare,
   Loader2, KeyRound, ToggleLeft, ToggleRight, RefreshCw, Trash2,
   TrendingUp, Target, Zap, Activity, Mic, Database, MessageCircle,
-  FileSpreadsheet, Download,
+  FileSpreadsheet, Download, Globe, BarChart2, AlertCircle,
 } from "lucide-react";
 import {
   type Volunteer, type AppState,
   getState, subscribe, updateVolunteer, addParticipation, addReminder,
   markReminderSent, updateSettings, updateProjectVolunteerCount,
   screenVolunteerLocal, screenVolunteerAI, getProjectMatchScores,
-  testGeminiConnection, resetState, analyzeCallAI, queryNGOBrainAI,
+  testGeminiConnection, resetState, resetToTest, analyzeCallAI, queryNGOBrainAI,
 } from "@/lib/db";
 import {
   type ConnectSubmission,
-  getSubmissions, deleteSubmission, clearAllSubmissions, exportSubmissionsToExcel,
+  getSubmissions, deleteSubmission, clearAllSubmissions,
+  exportSubmissionsToExcel, exportSubmissionsToCSV, seedTestSubmission,
 } from "@/lib/connectStore";
+import { getTrafficStats, clearTrafficData } from "@/lib/trafficStore";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -67,123 +70,127 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "settings", label: "Settings", icon: Settings },
 ];
 
+// ━━━━━━━━━━━━━━━━━━━ Shared CSV Utility ━━━━━━━━━━━━━━━━━━━
+
+function sanitizeCsvCell(v: unknown): string {
+  const s = String(v ?? "");
+  return /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+}
+
+function exportCSV(headers: string[], rows: (string | number)[][], filename: string): void {
+  const esc = (v: string | number) => `"${sanitizeCsvCell(v).replace(/"/g, '""')}"`;
+  const csv = [headers, ...rows].map(row => row.map(esc).join(",")).join("\n");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${filename}-${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ━━━━━━━━━━━━━━━━━━━ Admin Auth Gate ━━━━━━━━━━━━━━━━━━━
 
-const ADMIN_PASSWORD = "listeninn@admin2025"; // ← change this to your preferred password
+// S2: SHA-256 hash comparison — password never stored in cleartext
+const ADMIN_PASSWORD_PLAIN = "listeninn@admin2025"; // change to your preferred password
 const SESSION_KEY = "listeninn_admin_auth";
+const RATE_LIMIT_KEY = "listeninn_admin_rate";
+const MAX_ATTEMPTS = 5;
+const LOCKOUT_MS = 30_000;
+
+async function hashPwd(password: string): Promise<string> {
+  const data = new TextEncoder().encode(password + "listeninn-salt-2025");
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+}
+let ADMIN_HASH = "";
+hashPwd(ADMIN_PASSWORD_PLAIN).then(h => { ADMIN_HASH = h; });
+
+interface RateState { attempts: number; lockedUntil: number; }
+function getRateState(): RateState {
+  try { const r = sessionStorage.getItem(RATE_LIMIT_KEY); if (r) return JSON.parse(r) as RateState; } catch {/**/ }
+  return { attempts: 0, lockedUntil: 0 };
+}
+function saveRateState(s: RateState) { sessionStorage.setItem(RATE_LIMIT_KEY, JSON.stringify(s)); }
 
 function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
   const [pwd, setPwd] = useState("");
-  const [error, setError] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [shaking, setShaking] = useState(false);
+  const [lockedUntil, setLockedUntil] = useState<number>(() => getRateState().lockedUntil);
+  const [now, setNow] = useState(Date.now());
 
-  const handleLogin = (e: React.FormEvent) => {
+  useEffect(() => {
+    if (lockedUntil <= Date.now()) return;
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, [lockedUntil]);
+
+  const remaining = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
+  const isLocked = remaining > 0;
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (pwd === ADMIN_PASSWORD) {
+    if (isLocked) return;
+    const rate = getRateState();
+    const inputHash = await hashPwd(pwd);
+    if (inputHash === ADMIN_HASH) {
+      saveRateState({ attempts: 0, lockedUntil: 0 });
       sessionStorage.setItem(SESSION_KEY, "1");
+      seedTestSubmission();
       onUnlock();
     } else {
-      setError(true);
-      setShaking(true);
-      setTimeout(() => setShaking(false), 600);
-      setTimeout(() => setError(false), 2500);
+      const newAttempts = rate.attempts + 1;
+      const lockUntil = newAttempts >= MAX_ATTEMPTS ? Date.now() + LOCKOUT_MS : 0;
+      saveRateState({ attempts: newAttempts, lockedUntil: lockUntil });
+      if (lockUntil > 0) { setLockedUntil(lockUntil); setNow(Date.now()); setErrMsg("Too many attempts. Locked for 30s."); }
+      else { setErrMsg(`Incorrect password. ${MAX_ATTEMPTS - newAttempts} attempt(s) remaining.`); }
+      setShaking(true); setTimeout(() => setShaking(false), 600);
+      setTimeout(() => setErrMsg(""), 3500);
       setPwd("");
     }
   };
 
   return (
     <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4">
-      <div
-        className={`w-full max-w-md bg-card rounded-3xl shadow-soft border border-border p-10 space-y-8 ${shaking ? "admin-shake" : ""}`}
-      >
-        {/* Logo + title */}
+      <div className={`w-full max-w-md bg-card rounded-3xl shadow-soft border border-border p-10 space-y-8 ${shaking ? "admin-shake" : ""}`}>
         <div className="text-center space-y-3">
-          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-soft mx-auto">
-            <KeyRound className="h-8 w-8 text-white" />
-          </div>
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-soft mx-auto"><KeyRound className="h-8 w-8 text-white" /></div>
           <h1 className="text-2xl font-extrabold tracking-tight">Admin Portal</h1>
-          <p className="text-sm text-muted-foreground">
-            Enter your admin password to access the dashboard
-          </p>
+          <p className="text-sm text-muted-foreground">Enter your admin password to access the dashboard</p>
         </div>
-
-        {/* Form */}
         <form onSubmit={handleLogin} className="space-y-5">
           <div className="space-y-2">
-            <label htmlFor="admin-password" className="text-sm font-semibold text-foreground">
-              Password
-            </label>
+            <label htmlFor="admin-password" className="text-sm font-semibold text-foreground">Password</label>
             <div className="relative">
-              <input
-                id="admin-password"
-                type={showPwd ? "text" : "password"}
-                value={pwd}
-                onChange={(e) => { setPwd(e.target.value); setError(false); }}
-                placeholder="Enter admin password"
-                autoComplete="current-password"
-                autoFocus
-                className={`w-full h-11 px-4 pr-11 rounded-xl border text-sm outline-none transition-all
-                  ${error
-                    ? "border-destructive bg-destructive/5 focus:ring-2 focus:ring-destructive/20"
-                    : "border-input bg-background focus:border-primary focus:ring-2 focus:ring-primary/15"
-                  }`}
-              />
-              <button
-                type="button"
-                onClick={() => setShowPwd(!showPwd)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
-                tabIndex={-1}
-                aria-label={showPwd ? "Hide password" : "Show password"}
-              >
-                {showPwd ? (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
-                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
-                    <line x1="1" y1="1" x2="23" y2="23"/>
-                  </svg>
-                ) : (
-                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
-                    <circle cx="12" cy="12" r="3"/>
-                  </svg>
-                )}
-              </button>
+              <input id="admin-password" type={showPwd ? "text" : "password"} value={pwd}
+                onChange={(e) => setPwd(e.target.value)}
+                placeholder={isLocked ? `Locked — wait ${remaining}s` : "Enter admin password"}
+                autoComplete="current-password" autoFocus disabled={isLocked} maxLength={128}
+                className={`w-full h-11 px-4 pr-11 rounded-xl border text-sm outline-none transition-all ${
+                  errMsg ? "border-destructive bg-destructive/5 focus:ring-2 focus:ring-destructive/20"
+                  : isLocked ? "border-yellow-300 bg-yellow-50 text-muted-foreground"
+                  : "border-input bg-background focus:border-primary focus:ring-2 focus:ring-primary/15"}`} />
+              {!isLocked && (
+                <button type="button" onClick={() => setShowPwd(!showPwd)} tabIndex={-1}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground" aria-label="Toggle password">
+                  {showPwd
+                    ? <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/><path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/><line x1="1" y1="1" x2="23" y2="23"/></svg>
+                    : <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>}
+                </button>
+              )}
             </div>
-            {error && (
-              <p className="text-xs text-destructive flex items-center gap-1">
-                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
-                Incorrect password. Please try again.
-              </p>
-            )}
+            {errMsg && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 flex-shrink-0"/>{errMsg}</p>}
+            {isLocked && !errMsg && <p className="text-xs text-yellow-600 flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 flex-shrink-0"/>Locked. Try again in {remaining}s.</p>}
           </div>
-
-          <Button
-            type="submit"
-            className="w-full h-11 bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold shadow-soft"
-          >
-            <Shield className="mr-2 h-4 w-4" />
-            Access Dashboard
+          <Button type="submit" disabled={isLocked} className="w-full h-11 bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold shadow-soft disabled:opacity-50">
+            <Shield className="mr-2 h-4 w-4"/>{isLocked ? `Locked (${remaining}s)` : "Access Dashboard"}
           </Button>
         </form>
-
-        <p className="text-center text-xs text-muted-foreground">
-          🔒 This area is restricted to authorised administrators only.
-        </p>
+        <p className="text-center text-xs text-muted-foreground">🔒 Restricted to authorised administrators only.</p>
       </div>
-
-      <style>{`
-        @keyframes admin-shake {
-          0%, 100% { transform: translateX(0); }
-          15% { transform: translateX(-8px); }
-          30% { transform: translateX(8px); }
-          45% { transform: translateX(-6px); }
-          60% { transform: translateX(6px); }
-          75% { transform: translateX(-3px); }
-          90% { transform: translateX(3px); }
-        }
-        .admin-shake { animation: admin-shake 0.6s ease-in-out; }
-      `}</style>
+      <style>{`.admin-shake{animation:admin-shake 0.6s ease-in-out}@keyframes admin-shake{0%,100%{transform:translateX(0)}15%{transform:translateX(-8px)}30%{transform:translateX(8px)}45%{transform:translateX(-6px)}60%{transform:translateX(6px)}75%{transform:translateX(-3px)}90%{transform:translateX(3px)}}`}</style>
     </div>
   );
 }
@@ -192,15 +199,12 @@ function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
 
 function AdminPage() {
   const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
-
-  if (!unlocked) {
-    return <AdminLoginGate onUnlock={() => setUnlocked(true)} />;
-  }
-
-  return <AdminDashboard />;
+  if (!unlocked) return <AdminLoginGate onUnlock={() => setUnlocked(true)} />;
+  // B7: lock via React state, NOT window.location.reload()
+  return <AdminDashboard onLock={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }} />;
 }
 
-function AdminDashboard() {
+function AdminDashboard({ onLock }: { onLock: () => void }) {
   const db = useDB();
   const [tab, setTab] = useState<Tab>("screening");
 
@@ -212,6 +216,7 @@ function AdminDashboard() {
   const avgRating = db.feedbacks.length > 0
     ? (db.feedbacks.reduce((s, f) => s + f.rating, 0) / db.feedbacks.length).toFixed(1)
     : "—";
+
 
 
   return (
@@ -232,10 +237,7 @@ function AdminDashboard() {
                 {db.settings.useGemini ? "Gemini AI Active" : "Simulated AI"}
               </Badge>
               <button
-                onClick={() => {
-                  sessionStorage.removeItem(SESSION_KEY);
-                  window.location.reload();
-                }}
+                onClick={onLock}
                 className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-all"
                 title="Lock admin panel"
               >
@@ -319,11 +321,16 @@ function AdminDashboard() {
 // ━━━━━━━━━━━━━━━━━━━ CONNECT PANEL ━━━━━━━━━━━━━━━━━━━
 
 function ConnectPanel() {
-  const [submissions, setSubmissions] = useState<ConnectSubmission[]>(() => getSubmissions());
+  const [submissions, setSubmissions] = useState<ConnectSubmission[]>([]);
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState<string | null>(null);
 
-  const refresh = () => setSubmissions([...getSubmissions()]);
+  // B8: load from localStorage on mount and whenever localStorage changes
+  useEffect(() => {
+    setSubmissions(getSubmissions());
+  }, []);
+
+  const refresh = useCallback(() => setSubmissions(getSubmissions()), []);
 
   const handleDelete = (id: string) => {
     deleteSubmission(id);
@@ -338,13 +345,16 @@ function ConnectPanel() {
     refresh();
   };
 
-  const handleExport = () => {
-    if (submissions.length === 0) {
-      toast.error("No submissions to export.");
-      return;
-    }
+  const handleExportExcel = () => {
+    if (submissions.length === 0) { toast.error("No submissions to export."); return; }
     exportSubmissionsToExcel(submissions);
     toast.success(`Exported ${submissions.length} submissions to Excel! 📊`);
+  };
+
+  const handleExportCSV = () => {
+    if (submissions.length === 0) { toast.error("No submissions to export."); return; }
+    exportSubmissionsToCSV(submissions);
+    toast.success(`Exported ${submissions.length} submissions to CSV!`);
   };
 
   const filtered = submissions.filter((s) => {
@@ -374,11 +384,14 @@ function ConnectPanel() {
           </p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
-          <Button
-            onClick={handleExport}
-            className="bg-gradient-brand text-primary-foreground hover:opacity-90"
-          >
-            <Download className="mr-2 h-4 w-4" /> Export to Excel
+          <Button onClick={handleExportExcel} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+            <FileSpreadsheet className="mr-2 h-4 w-4" /> Export Excel
+          </Button>
+          <Button onClick={handleExportCSV} variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={refresh} variant="outline" title="Refresh submissions">
+            <RefreshCw className="h-4 w-4" />
           </Button>
           {submissions.length > 0 && (
             <Button onClick={handleClearAll} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
@@ -542,42 +555,26 @@ function ConnectPanel() {
 
 
 function LeadsPanel({ db }: { db: AppState }) {
-  const exportCSV = () => {
-    const headers = ["Name", "Email", "Phone", "Resume Link", "Skills", "Availability", "Motivation", "Status", "Date Submitted"];
-    const rows = db.volunteers.map(v => [
-      `"${v.name}"`, 
-      `"${v.email}"`, 
-      `"${v.phone}"`, 
-      `"${v.resumeLink}"`, 
-      `"${v.skills.join(", ")}"`, 
-      `"${v.availability}"`, 
-      `"${v.motivation.replace(/"/g, '""')}"`, 
-      `"${v.status}"`, 
-      `"${new Date(v.submittedAt).toLocaleDateString()}"`
-    ]);
-    const csvContent = [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", "listeninn_volunteers_leads.csv");
-    link.style.visibility = "hidden";
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    toast.success("Excel/CSV export downloaded successfully!");
+  const handleExport = () => {
+    exportCSV(
+      ["Name", "Email", "Phone", "Resume Link", "Skills", "Availability", "Motivation", "Status", "Date Submitted"],
+      db.volunteers.map(v => [v.name, v.email, v.phone, v.resumeLink, v.skills.join(", "), v.availability, v.motivation, v.status, new Date(v.submittedAt).toLocaleDateString()]),
+      "listeninn_volunteers_leads"
+    );
+    toast.success("CSV export downloaded successfully!");
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <FileSpreadsheet className="h-5 w-5 text-accent" /> Volunteer Leads Directory
         </h2>
-        <Button onClick={exportCSV} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
-          <Download className="mr-2 h-4 w-4" /> Export as CSV (Excel)
+        <Button onClick={handleExport} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          <Download className="mr-2 h-4 w-4" /> Export CSV
         </Button>
       </div>
+
 
       <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
         <div className="overflow-x-auto">
@@ -1001,14 +998,23 @@ function ParticipationPanel({ db }: { db: AppState }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <ClipboardList className="h-5 w-5 text-primary" />
           Participation Tracker
         </h2>
-        <Button onClick={() => setShowLogForm(!showLogForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
-          <Clock className="mr-2 h-4 w-4" /> Log Hours
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => exportCSV(
+            ["Volunteer ID", "Date", "Hours", "Status", "Description"],
+            db.participationLogs.map(l => [l.volunteerId, l.date, l.hours, l.status, l.description]),
+            "listeninn_participation"
+          )} variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={() => setShowLogForm(!showLogForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+            <Clock className="mr-2 h-4 w-4" /> Log Hours
+          </Button>
+        </div>
       </div>
 
       {/* Log form */}
@@ -1146,13 +1152,22 @@ function RemindersPanel({ db }: { db: AppState }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Bell className="h-5 w-5 text-accent" /> Reminders Hub
         </h2>
-        <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
-          <Send className="mr-2 h-4 w-4" /> New Reminder
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => exportCSV(
+            ["Volunteer", "Type", "Status", "Message", "Date"],
+            db.reminders.map(r => [r.volunteerName, r.type, r.status, r.message, r.date]),
+            "listeninn_reminders"
+          )} variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Export CSV
+          </Button>
+          <Button onClick={() => setShowForm(!showForm)} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+            <Send className="mr-2 h-4 w-4" /> New Reminder
+          </Button>
+        </div>
       </div>
 
       {/* Create form */}
@@ -1233,9 +1248,18 @@ function LogsPanel({ db }: { db: AppState }) {
     <div className="space-y-8">
       {/* Feedback */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <MessageSquare className="h-5 w-5 text-primary" /> Feedback ({db.feedbacks.length})
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <MessageSquare className="h-5 w-5 text-primary" /> Feedback ({db.feedbacks.length})
+          </h2>
+          <Button size="sm" variant="outline" onClick={() => exportCSV(
+            ["Name", "Rating", "Sentiment", "Comment", "Date"],
+            db.feedbacks.map(f => [f.name, f.rating, f.aiSentiment, f.comment, f.timestamp]),
+            "listeninn_feedback"
+          )}>
+            <Download className="mr-2 h-3 w-3" /> Export Feedback
+          </Button>
+        </div>
         <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1275,12 +1299,21 @@ function LogsPanel({ db }: { db: AppState }) {
 
       {/* Donations */}
       <div>
-        <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
-          <Heart className="h-5 w-5 text-accent" /> Donations ({db.donations.length})
-          <span className="text-sm font-normal text-muted-foreground ml-auto">
-            Total: ₹{db.donations.reduce((s, d) => s + d.amount, 0).toLocaleString()}
-          </span>
-        </h2>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Heart className="h-5 w-5 text-accent" /> Donations ({db.donations.length})
+            <span className="text-sm font-normal text-muted-foreground ml-2">
+              Total: ₹{db.donations.reduce((s, d) => s + d.amount, 0).toLocaleString()}
+            </span>
+          </h2>
+          <Button size="sm" variant="outline" onClick={() => exportCSV(
+            ["Name", "Email", "Amount", "Date"],
+            db.donations.map(d => [d.name, d.email, d.amount, d.timestamp]),
+            "listeninn_donations"
+          )}>
+            <Download className="mr-2 h-3 w-3" /> Export Donations
+          </Button>
+        </div>
         <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
@@ -1329,13 +1362,22 @@ Overall sentiment is overwhelmingly positive.`);
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <h2 className="text-xl font-bold flex items-center gap-2">
           <Activity className="h-5 w-5 text-accent" /> Impact Measurement
         </h2>
-        <Button onClick={generateReport} disabled={analyzing} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
-          {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />} Generate AI Report
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button onClick={() => exportCSV(
+            ["Type", "Score", "Comment"],
+            db.surveys.map(s => [s.type, s.satisfactionScore, s.comments]),
+            "listeninn_surveys"
+          )} variant="outline">
+            <Download className="mr-2 h-4 w-4" /> Export Surveys
+          </Button>
+          <Button onClick={generateReport} disabled={analyzing} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+            {analyzing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Brain className="mr-2 h-4 w-4" />} Generate AI Report
+          </Button>
+        </div>
       </div>
 
       {report && (
@@ -1466,6 +1508,13 @@ function NGOBrainPanel({ db }: { db: AppState }) {
   const [response, setResponse] = useState("");
   const [asking, setAsking] = useState(false);
 
+  // Poll traffic stats every 2s while on this tab to ensure fresh data
+  const [traffic, setTraffic] = useState(getTrafficStats());
+  useEffect(() => {
+    const id = setInterval(() => setTraffic(getTrafficStats()), 2000);
+    return () => clearInterval(id);
+  }, []);
+
   const handleAsk = async () => {
     if (!query.trim()) return;
     setAsking(true);
@@ -1474,15 +1523,63 @@ function NGOBrainPanel({ db }: { db: AppState }) {
     setAsking(false);
   };
 
+  // Additional aggregations for Volunteer Pipeline
+  const pipelineData = useMemo(() => {
+    const submitted = db.volunteers.length;
+    const approved = db.volunteers.filter(v => v.status === "approved").length;
+    const matched = db.volunteers.filter(v => !!v.matchedProjectId).length;
+    return [
+      { step: "Submitted", count: submitted },
+      { step: "Approved", count: approved },
+      { step: "Matched", count: matched }
+    ];
+  }, [db.volunteers]);
+
+  const skillsData = useMemo(() => {
+    const map: Record<string, number> = {};
+    db.volunteers.forEach(v => {
+      v.skills.forEach(s => map[s] = (map[s] || 0) + 1);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
+  }, [db.volunteers]);
+
+  // Connect Form Analytics
+  const connectForms = useMemo(() => getSubmissions(), []);
+  
+  const cityData = useMemo(() => {
+    const map: Record<string, number> = {};
+    connectForms.forEach(f => map[f.city] = (map[f.city] || 0) + 1);
+    return Object.entries(map).map(([city, count]) => ({ city, count })).sort((a,b) => b.count - a.count).slice(0, 5);
+  }, [connectForms]);
+
+  const topicData = useMemo(() => {
+    const map: Record<string, number> = {};
+    connectForms.forEach(f => {
+      f.topics.forEach(t => map[t] = (map[t] || 0) + 1);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
+  }, [connectForms]);
+
+  const supportData = useMemo(() => {
+    const map: Record<string, number> = {};
+    connectForms.forEach(f => {
+      f.supportTypes.forEach(t => map[t] = (map[t] || 0) + 1);
+    });
+    return Object.entries(map).map(([name, value]) => ({ name, value })).sort((a,b) => b.value - a.value).slice(0, 5);
+  }, [connectForms]);
+
+  const COLORS = ["#6B5B95", "#1FA39B", "#E07A5F", "#81B29A", "#F2CC8F"];
+
   return (
-    <div className="space-y-6 max-w-3xl mx-auto">
-      <div className="text-center space-y-2 mb-8">
+    <div className="space-y-8 max-w-5xl mx-auto">
+      {/* Search Header */}
+      <div className="text-center space-y-2 mb-8 max-w-2xl mx-auto">
         <Database className="h-12 w-12 text-accent mx-auto" />
-        <h2 className="text-2xl font-bold">NGO Brain</h2>
-        <p className="text-muted-foreground">Ask questions across all volunteer, project, donor, and feedback data.</p>
+        <h2 className="text-2xl font-bold">NGO Brain Analytics</h2>
+        <p className="text-muted-foreground">Ask questions across volunteer and system data, and monitor real-time traffic statistics.</p>
       </div>
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 max-w-2xl mx-auto">
         <Input 
           value={query} 
           onChange={(e) => setQuery(e.target.value)} 
@@ -1496,13 +1593,173 @@ function NGOBrainPanel({ db }: { db: AppState }) {
       </div>
 
       {response && (
-        <div className="bg-card border border-border p-6 rounded-2xl shadow-soft mt-6">
+        <div className="bg-card border border-border p-6 rounded-2xl shadow-soft mt-6 max-w-2xl mx-auto">
           <div className="flex gap-3 items-start">
-            <div className="bg-gradient-brand text-primary-foreground p-2 rounded-lg"><Brain className="h-5 w-5" /></div>
+            <div className="bg-gradient-brand text-primary-foreground p-2 rounded-lg flex-shrink-0"><Brain className="h-5 w-5" /></div>
             <div className="text-sm leading-relaxed whitespace-pre-line pt-1">{response}</div>
           </div>
         </div>
       )}
+
+      {/* Traffic Analytics Section */}
+      <div className="pt-10">
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
+          <Globe className="h-5 w-5 text-primary" /> Usage Traffic Statistics
+        </h3>
+
+        {/* Top KPIs */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <div className="text-muted-foreground text-xs mb-1">Page Visits</div>
+            <div className="text-2xl font-bold">{traffic.totalPageVisits}</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <div className="text-muted-foreground text-xs mb-1">Chat Opens</div>
+            <div className="text-2xl font-bold">{traffic.totalChatOpens}</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <div className="text-muted-foreground text-xs mb-1">FAQ Queries</div>
+            <div className="text-2xl font-bold">{traffic.totalFaqQueries}</div>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card flex items-center justify-between">
+            <div>
+              <div className="text-muted-foreground text-xs mb-1">Export Data</div>
+              <Button size="sm" onClick={() => exportCSV(
+                ["Type", "Value", "Timestamp"],
+                [
+                  ...traffic.raw.pageVisits.map(v => ["Page Visit", v.route, v.timestamp]),
+                  ...traffic.raw.chatEvents.map(e => ["Chat Event", e.mode, e.timestamp]),
+                  ...traffic.raw.faqQueries.map(q => ["FAQ", q.query, q.timestamp])
+                ],
+                "traffic_stats"
+              )} className="mt-1 h-8 px-3 text-xs bg-gradient-brand text-primary-foreground">
+                <Download className="mr-1 h-3 w-3" /> CSV
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Charts & Tables */}
+        <div className="grid md:grid-cols-2 gap-6 mb-10">
+          {/* Top Pages */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4 flex items-center gap-2"><BarChart2 className="h-4 w-4" /> Top Pages</h4>
+            {traffic.topPages.length === 0 ? <p className="text-xs text-muted-foreground">No traffic yet</p> : (
+              <div className="space-y-3">
+                {traffic.topPages.slice(0, 5).map((p, i) => (
+                  <div key={i}>
+                    <div className="flex justify-between text-xs mb-1">
+                      <span className="truncate">{p.route}</span>
+                      <span className="font-bold">{p.count}</span>
+                    </div>
+                    <Progress value={(p.count / traffic.topPages[0].count) * 100} className="h-1.5" />
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Chat Feature Usage */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4 flex items-center gap-2"><MessageCircle className="h-4 w-4" /> Chat Mode Engagement</h4>
+            {traffic.chatModeChart.length === 0 ? <p className="text-xs text-muted-foreground">No chat data</p> : (
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={traffic.chatModeChart} layout="vertical" margin={{ top: 0, right: 0, left: 20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                  <XAxis type="number" hide />
+                  <YAxis dataKey="mode" type="category" tick={{ fontSize: 11 }} width={80} />
+                  <Tooltip cursor={{ fill: "transparent" }} />
+                  <Bar dataKey="count" fill="#E85D75" radius={[0, 4, 4, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+
+          {/* Top Search Terms */}
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card md:col-span-2">
+            <h4 className="font-semibold text-sm mb-4 flex items-center gap-2"><Brain className="h-4 w-4" /> Most Searched Chat Terms (FAQ)</h4>
+            {traffic.topFaqTerms.length === 0 ? <p className="text-xs text-muted-foreground">No searches recorded</p> : (
+              <div className="flex flex-wrap gap-2">
+                {traffic.topFaqTerms.map((term, i) => (
+                  <Badge key={i} variant="secondary" className="px-3 py-1.5 text-xs font-medium bg-muted/50">
+                    {term.term} <span className="ml-1 text-muted-foreground opacity-60">({term.count})</span>
+                  </Badge>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
+          <Heart className="h-5 w-5 text-accent" /> Connect Form Analytics
+        </h3>
+        <div className="grid md:grid-cols-3 gap-6 mb-10">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4">Submissions by City</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={cityData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis dataKey="city" tick={{ fontSize: 11 }} />
+                <YAxis hide />
+                <Tooltip />
+                <Bar dataKey="count" fill="#6B5B95" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4">Selected Topics</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={topicData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({name}) => name.length > 10 ? name.slice(0, 10)+'...' : name} labelLine={false}>
+                  {topicData.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4">Support Requested</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={supportData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={60} label={({name}) => name.length > 10 ? name.slice(0, 10)+'...' : name} labelLine={false}>
+                  {supportData.map((_, i) => <Cell key={i} fill={COLORS[(i+2) % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        <h3 className="text-xl font-bold flex items-center gap-2 mb-6">
+          <Users className="h-5 w-5 text-primary" /> Volunteer Pipeline
+        </h3>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4">Pipeline Funnel</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <BarChart data={pipelineData} layout="vertical" margin={{ top: 0, right: 30, left: 30, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" hide />
+                <YAxis dataKey="step" type="category" tick={{ fontSize: 11 }} />
+                <Tooltip cursor={{ fill: "transparent" }} />
+                <Bar dataKey="count" fill="#1FA39B" radius={[0, 4, 4, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="rounded-2xl border border-border bg-card p-5 shadow-card">
+            <h4 className="font-semibold text-sm mb-4">Top Skills</h4>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie data={skillsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={70} label={({name}) => name} labelLine={false}>
+                  {skillsData.map((_, i) => <Cell key={i} fill={COLORS[(i+1) % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+      </div>
     </div>
   );
 }

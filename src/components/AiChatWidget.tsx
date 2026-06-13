@@ -24,6 +24,7 @@ import {
   chatWithAI,
   PROGRAMS_INFO,
 } from "@/lib/db";
+import { recordChatEvent, recordFaqQuery } from "@/lib/trafficStore";
 
 // ━━━━━━━━━━━━━━━━━━━ Types ━━━━━━━━━━━━━━━━━━━
 
@@ -50,6 +51,19 @@ export function AiChatWidget() {
   const [language, setLanguage] = useState("English");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  // Record chat open/close
+  const handleToggle = useCallback(() => {
+    const next = !open;
+    setOpen(next);
+    if (next) recordChatEvent("open");
+  }, [open]);
+
+  // Record language changes
+  const handleLanguageChange = useCallback((lang: string) => {
+    setLanguage(lang);
+    recordChatEvent(`lang:${lang}`);
+  }, []);
 
   // Volunteer flow state
   const [volStep, setVolStep] = useState<VolunteerStep>("name");
@@ -91,18 +105,21 @@ export function AiChatWidget() {
 
   const startFaq = () => {
     setMode("faq");
+    recordChatEvent("faq");
     setMessages([]);
     botReply("Hi there! 💜 I'm ListenInn's assistant. Ask me anything about our foundation, programs, volunteering, donations, or mental health support. I'm here to help!", 300);
   };
 
   const startPrograms = () => {
     setMode("programs");
+    recordChatEvent("programs");
     setMessages([]);
     botReply("Here are all the programs we offer at ListenInn Foundation. Tap any program to learn more! 🌟", 300);
   };
 
   const startVolunteer = () => {
     setMode("volunteer");
+    recordChatEvent("volunteer");
     setMessages([]);
     setVolStep("name");
     botReply("Wonderful that you want to volunteer! 🤝 Let's get you started. What's your full name?", 300);
@@ -110,6 +127,7 @@ export function AiChatWidget() {
 
   const startDonate = () => {
     setMode("donate");
+    recordChatEvent("donate");
     setMessages([]);
     setDonStep("amount");
     botReply("Thank you for your generosity! 💝 How much would you like to donate? You can choose ₹500, ₹1,000, ₹2,000, ₹5,000, or ₹10,000 — or type any custom amount.", 300);
@@ -117,6 +135,7 @@ export function AiChatWidget() {
 
   const startFeedback = () => {
     setMode("feedback");
+    recordChatEvent("feedback");
     setMessages([]);
     setFbStep("rating");
     botReply("We'd love to hear from you! 📝 First, how would you rate your experience with ListenInn? (1-5 stars)", 300);
@@ -132,6 +151,7 @@ export function AiChatWidget() {
 
     if (mode === "faq") {
       setIsTyping(true);
+      recordFaqQuery(text); // Record for analytics
       const context = messages.map((m) => `${m.from}: ${m.text}`).join("\n");
       const reply = await chatWithAI(text, context, language);
       setIsTyping(false);
@@ -154,7 +174,11 @@ export function AiChatWidget() {
         botReply(`Nice to meet you, ${text}! 👋 What's your email address?`);
         break;
       case "email":
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(text)) { botReply("Hmm, that doesn't look like a valid email. Could you try again? 📧"); return; }
+        // B6: tightened email validation
+        if (!/^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/.test(text)) {
+          botReply("Hmm, that doesn't look like a valid email. Could you try again? 📧");
+          return;
+        }
         setVolData((d) => ({ ...d, email: text }));
         setVolStep("phone");
         botReply("Got it! Could you also provide a phone number where we can reach you? 📱");
@@ -255,7 +279,7 @@ export function AiChatWidget() {
       {/* Floating Toggle Button */}
       <button
         id="ai-chat-toggle"
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         className={`fixed bottom-6 right-6 z-[9999] flex items-center justify-center rounded-full shadow-lg transition-all duration-300 ${
           open
             ? "h-12 w-12 bg-red-500/90 hover:bg-red-600 text-white rotate-0"
@@ -307,7 +331,7 @@ export function AiChatWidget() {
               <Globe className="h-3.5 w-3.5 opacity-80" />
               <select
                 value={language}
-                onChange={(e) => setLanguage(e.target.value)}
+                onChange={(e) => handleLanguageChange(e.target.value)}
                 className="bg-transparent text-xs text-white border-none focus:outline-none appearance-none cursor-pointer pr-2"
                 style={{ textAlignLast: "center" }}
               >
@@ -484,6 +508,7 @@ export function AiChatWidget() {
                   id="ai-chat-input"
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
+                  maxLength={500}
                   placeholder={
                     mode === "faq" ? "Ask me anything..." :
                     mode === "volunteer" ? (

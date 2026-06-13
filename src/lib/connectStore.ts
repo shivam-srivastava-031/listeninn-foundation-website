@@ -29,10 +29,28 @@ export interface ConnectSubmission {
 
 const STORAGE_KEY = "listeninn_connect_submissions";
 
+/** S5: validate shape of a stored submission */
+function isValidSubmission(obj: unknown): obj is ConnectSubmission {
+  if (typeof obj !== "object" || obj === null) return false;
+  const s = obj as Record<string, unknown>;
+  return (
+    typeof s.id === "string" &&
+    typeof s.submittedAt === "string" &&
+    typeof s.preferredName === "string" &&
+    typeof s.phone === "string" &&
+    Array.isArray(s.topics) &&
+    Array.isArray(s.supportTypes)
+  );
+}
+
 export function getSubmissions(): ConnectSubmission[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as ConnectSubmission[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) return [];
+    // S5: filter out any malformed records
+    return parsed.filter(isValidSubmission);
   } catch {
     return [];
   }
@@ -59,22 +77,99 @@ export function clearAllSubmissions(): void {
   localStorage.removeItem(STORAGE_KEY);
 }
 
+/** Seeds a single "test" connect submission for verification purposes. */
+export function seedTestSubmission(): void {
+  const existing = getSubmissions();
+  // Only seed if no submissions exist yet
+  if (existing.length > 0) return;
+  const testSub: ConnectSubmission = {
+    id: "CS-TEST-00001",
+    submittedAt: new Date().toISOString(),
+    preferredName: "Test User",
+    fullName: "Test User Full Name",
+    ageGroup: "18–25",
+    email: "test.connect@listeninn.org",
+    phone: "+91 99999 00002",
+    city: "Test City",
+    state: "Test State",
+    topics: ["Anxiety", "Depression"],
+    otherTopic: "",
+    story: "This is a test connect form submission. Created to verify that the admin panel correctly displays submissions and that CSV/Excel export works as expected.",
+    supportTypes: ["Talk to someone", "Professional counseling"],
+    reachMethod: "WhatsApp",
+    availability: "Weekday evenings",
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify([testSub]));
+}
+
+// ── S8: CSV injection prevention ───────────────────────────────────────────
+
+/** Prefix cells starting with formula characters to prevent CSV injection. */
+function sanitizeCsvCell(value: string): string {
+  if (/^[=+\-@\t\r]/.test(value)) return `'${value}`;
+  return value;
+}
+
+// ── CSV export ─────────────────────────────────────────────────────────────
+
+export function exportSubmissionsToCSV(submissions: ConnectSubmission[]): void {
+  if (submissions.length === 0) return;
+
+  const headers = [
+    "Submission ID", "Date Submitted", "Preferred Name", "Full Name",
+    "Age Group", "Email", "Phone / WhatsApp", "City", "State",
+    "Topics", "Story", "Support Needed", "Reach Method", "Availability",
+  ];
+
+  const rows = submissions.map((s) => [
+    s.id,
+    new Date(s.submittedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }),
+    s.preferredName,
+    s.fullName || "—",
+    s.ageGroup,
+    s.email || "—",
+    s.phone,
+    s.city,
+    s.state,
+    s.topics.join("; ") + (s.otherTopic ? `; Other: ${s.otherTopic}` : ""),
+    s.story,
+    s.supportTypes.join("; "),
+    s.reachMethod,
+    s.availability,
+  ].map(sanitizeCsvCell));
+
+  const csv = [headers, ...rows]
+    .map((r) => r.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+    .join("\n");
+
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `listeninn_connect_${new Date().toISOString().slice(0, 10)}.csv`;
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
 // ── Excel export ───────────────────────────────────────────────────────────
 
 export function exportSubmissionsToExcel(submissions: ConnectSubmission[]): void {
+  // B4: guard against empty array crash
+  if (submissions.length === 0) return;
+
   const rows = submissions.map((s) => ({
-    "Submission ID": s.id,
+    "Submission ID": sanitizeCsvCell(s.id),
     "Date Submitted": new Date(s.submittedAt).toLocaleString("en-IN", {
       dateStyle: "medium",
       timeStyle: "short",
     }),
-    "Preferred Name": s.preferredName,
-    "Full Name": s.fullName || "—",
+    "Preferred Name": sanitizeCsvCell(s.preferredName),
+    "Full Name": sanitizeCsvCell(s.fullName || "—"),
     "Age Group": s.ageGroup,
-    "Email": s.email || "—",
-    "Phone / WhatsApp": s.phone,
-    "City": s.city,
-    "State": s.state,
+    "Email": sanitizeCsvCell(s.email || "—"),
+    "Phone / WhatsApp": sanitizeCsvCell(s.phone),
+    "City": sanitizeCsvCell(s.city),
+    "State": sanitizeCsvCell(s.state),
     "Topics to Discuss": s.topics.join(", ") + (s.otherTopic ? `, Other: ${s.otherTopic}` : ""),
     "Story / Message": s.story,
     "Support Needed": s.supportTypes.join(", "),
@@ -84,8 +179,9 @@ export function exportSubmissionsToExcel(submissions: ConnectSubmission[]): void
 
   const worksheet = XLSX.utils.json_to_sheet(rows);
 
-  // Auto column widths
-  const colWidths = Object.keys(rows[0] ?? {}).map((key) => ({
+  // Auto column widths (B4 fix: safe because rows.length > 0 is guaranteed above)
+  const firstRow = rows[0] as Record<string, string>;
+  const colWidths = Object.keys(firstRow).map((key) => ({
     wch: Math.max(
       key.length,
       ...rows.map((r) => String((r as Record<string, string>)[key] ?? "").length)
@@ -104,9 +200,6 @@ export function exportSubmissionsToExcel(submissions: ConnectSubmission[]): void
   const workbook = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(workbook, worksheet, "Connect Submissions");
 
-  const fileName = `listeninn_connect_submissions_${new Date()
-    .toISOString()
-    .slice(0, 10)}.xlsx`;
-
+  const fileName = `listeninn_connect_${new Date().toISOString().slice(0, 10)}.xlsx`;
   XLSX.writeFile(workbook, fileName);
 }

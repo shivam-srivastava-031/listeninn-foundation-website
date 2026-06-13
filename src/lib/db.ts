@@ -128,13 +128,8 @@ export function uid(): string {
   return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 }
 
-function daysAgo(d: number): string {
-  const date = new Date();
-  date.setDate(date.getDate() - d);
-  return date.toISOString();
-}
-
-// ━━━━━━━━━━━━━━━━━━━ Initial Mock Data ━━━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━━━ Seed Data (one "test" record per collection) ━━━━━━━━━━━━━━━━━━━
+// Projects are kept intact since the AI matching engine needs them.
 
 const INITIAL_PROJECTS: Project[] = [
   {
@@ -143,16 +138,16 @@ const INITIAL_PROJECTS: Project[] = [
     description: "Staff our crisis helpline, providing immediate emotional support to callers in distress.",
     requiredSkills: ["active listening", "empathy", "crisis management", "communication"],
     minHoursPerWeek: 8,
-    currentVolunteers: 12,
+    currentVolunteers: 0,
     targetVolunteers: 20,
   },
   {
     id: "proj-youth",
     title: "Youth Wellbeing Workshops",
-    description: "Facilitate interactive mental health workshops for teens and young adults in schools and community centres.",
+    description: "Facilitate interactive mental health workshops for teens and young adults.",
     requiredSkills: ["public speaking", "youth engagement", "counseling", "creativity"],
     minHoursPerWeek: 5,
-    currentVolunteers: 6,
+    currentVolunteers: 0,
     targetVolunteers: 10,
   },
   {
@@ -161,161 +156,114 @@ const INITIAL_PROJECTS: Project[] = [
     description: "Lead weekly peer support circles for people navigating grief, anxiety, and depression.",
     requiredSkills: ["facilitation", "empathy", "group dynamics", "patience"],
     minHoursPerWeek: 4,
-    currentVolunteers: 8,
+    currentVolunteers: 0,
     targetVolunteers: 12,
   },
   {
     id: "proj-stigma",
     title: "Stigma Awareness Campaign",
-    description: "Create and distribute content to normalise conversations about mental health across social media and public events.",
+    description: "Create content to normalise conversations about mental health.",
     requiredSkills: ["social media", "writing", "design", "community outreach"],
     minHoursPerWeek: 6,
-    currentVolunteers: 4,
+    currentVolunteers: 0,
     targetVolunteers: 8,
   },
 ];
 
 const INITIAL_VOLUNTEERS: Volunteer[] = [
   {
-    id: "vol-001",
-    name: "Ananya Sharma",
-    email: "ananya@example.com",
-    phone: "+91 98765 43210",
-    resumeLink: "https://linkedin.com/in/ananyasharma",
+    id: "vol-test-001",
+    name: "Test Volunteer",
+    email: "test.volunteer@listeninn.org",
+    phone: "+91 99999 00001",
+    resumeLink: "https://linkedin.com/in/test-volunteer",
     skills: ["active listening", "empathy", "communication"],
     availability: "10 hours/week",
-    motivation: "I lost a close friend to depression and want to ensure no one else feels that alone. Listening is the most powerful thing we can do.",
-    status: "approved",
-    submittedAt: daysAgo(30),
-    screening: { fitScore: 92, empathyRating: 95, insights: "Exceptionally motivated with personal experience that deepens empathy. Strong communicator.", risks: "May need emotional support given personal loss — recommend regular supervision.", recommendedProjects: ["24/7 Helpline Support", "Peer Support Groups"] },
-    matchedProjectId: "proj-helpline",
-  },
-  {
-    id: "vol-002",
-    name: "Rahul Verma",
-    email: "rahul.v@example.com",
-    phone: "+91 91234 56789",
-    resumeLink: "https://drive.google.com/file/d/rahul_resume",
-    skills: ["public speaking", "youth engagement", "creativity"],
-    availability: "6 hours/week",
-    motivation: "I'm a teacher and I see students struggling silently every day. I want to help them open up and know it's okay to ask for help.",
-    status: "approved",
-    submittedAt: daysAgo(25),
-    screening: { fitScore: 88, empathyRating: 82, insights: "Professional experience with youth gives strong foundation. Excellent presentation skills.", risks: "Limited crisis experience — ensure proper training completion.", recommendedProjects: ["Youth Wellbeing Workshops", "Stigma Awareness Campaign"] },
-    matchedProjectId: "proj-youth",
-  },
-  {
-    id: "vol-003",
-    name: "Priya Nair",
-    email: "priya.n@example.com",
-    phone: "+91 99887 76655",
-    resumeLink: "https://priyanair.portfolio.com",
-    skills: ["social media", "writing", "design", "community outreach"],
-    availability: "8 hours/week",
-    motivation: "As a content creator, I want to use my skills for something meaningful. Mental health content can reach millions and change perspectives.",
-    status: "approved",
-    submittedAt: daysAgo(20),
-    screening: { fitScore: 85, empathyRating: 78, insights: "Strong digital skills with genuine passion for social impact. Portfolio demonstrates compelling storytelling.", risks: "No direct counseling experience — best suited for awareness rather than direct support.", recommendedProjects: ["Stigma Awareness Campaign"] },
-    matchedProjectId: "proj-stigma",
-  },
-  {
-    id: "vol-004",
-    name: "Meera Iyer",
-    email: "meera.i@example.com",
-    phone: "+91 88776 65544",
-    resumeLink: "https://linkedin.com/in/meeraiyer",
-    skills: ["empathy", "facilitation", "patience", "group dynamics"],
-    availability: "5 hours/week",
-    motivation: "I've attended therapy myself and it changed my life. I want to create safe spaces where people feel comfortable being vulnerable.",
+    motivation: "This is a test volunteer record. Created to verify the volunteer screening, matching, and participation workflows.",
     status: "pending",
-    submittedAt: daysAgo(3),
-    screening: null,
-    matchedProjectId: null,
-  },
-  {
-    id: "vol-005",
-    name: "Arjun Patel",
-    email: "arjun.p@example.com",
-    phone: "+91 77665 54433",
-    resumeLink: "https://drive.google.com/file/d/arjun_cv",
-    skills: ["communication", "crisis management", "active listening"],
-    availability: "12 hours/week",
-    motivation: "I'm a retired social worker with 15 years of experience. I want to continue making a difference in my retirement.",
-    status: "pending",
-    submittedAt: daysAgo(1),
+    submittedAt: new Date().toISOString(),
     screening: null,
     matchedProjectId: null,
   },
 ];
 
 const INITIAL_PARTICIPATION: ParticipationLog[] = [
-  { id: "p-001", volunteerId: "vol-001", date: daysAgo(2), hours: 4, description: "Helpline shift — handled 6 calls", status: "completed" },
-  { id: "p-002", volunteerId: "vol-001", date: daysAgo(5), hours: 3, description: "Helpline evening shift", status: "completed" },
-  { id: "p-003", volunteerId: "vol-002", date: daysAgo(3), hours: 2, description: "Youth workshop at Delhi Public School", status: "completed" },
-  { id: "p-004", volunteerId: "vol-002", date: daysAgo(7), hours: 3, description: "Workshop preparation & material review", status: "completed" },
-  { id: "p-005", volunteerId: "vol-003", date: daysAgo(1), hours: 5, description: "Social media content batch creation", status: "completed" },
-  { id: "p-006", volunteerId: "vol-003", date: daysAgo(4), hours: 3, description: "Instagram Reels editing & scheduling", status: "completed" },
-  { id: "p-007", volunteerId: "vol-001", date: daysAgo(9), hours: 4, description: "Helpline weekend shift", status: "completed" },
-  { id: "p-008", volunteerId: "vol-002", date: daysAgo(10), hours: 2, description: "Teacher coordination meeting", status: "completed" },
+  {
+    id: "p-test-001",
+    volunteerId: "vol-test-001",
+    date: new Date().toISOString(),
+    hours: 2,
+    description: "Test participation log — verify participation tracking workflow",
+    status: "completed",
+  },
 ];
 
 const INITIAL_REMINDERS: Reminder[] = [
-  { id: "r-001", volunteerId: "vol-001", volunteerName: "Ananya Sharma", type: "shift_reminder", message: "Your helpline shift starts tomorrow at 6 PM. Please review the crisis protocol sheet before starting.", date: daysAgo(-1), status: "scheduled" },
-  { id: "r-002", volunteerId: "vol-002", volunteerName: "Rahul Verma", type: "training_notice", message: "Mandatory refresher training on youth engagement techniques this Saturday, 10 AM.", date: daysAgo(-3), status: "scheduled" },
-  { id: "r-003", volunteerId: "vol-003", volunteerName: "Priya Nair", type: "check_in", message: "Monthly check-in: How are you feeling about your work? Any support needed?", date: daysAgo(1), status: "sent" },
+  {
+    id: "r-test-001",
+    volunteerId: "vol-test-001",
+    volunteerName: "Test Volunteer",
+    type: "shift_reminder",
+    message: "Test reminder — verify the reminders hub and send-now workflow.",
+    date: new Date().toISOString(),
+    status: "scheduled",
+  },
 ];
 
 const INITIAL_DONATIONS: Donation[] = [
-  { id: "d-001", name: "Vikram Singh", email: "vikram@example.com", amount: 5000, timestamp: daysAgo(2) },
-  { id: "d-002", name: "Sunita Reddy", email: "sunita@example.com", amount: 2000, timestamp: daysAgo(5) },
-  { id: "d-003", name: "Anonymous", email: "", amount: 10000, timestamp: daysAgo(8) },
-  { id: "d-004", name: "Ravi Kumar", email: "ravi.k@example.com", amount: 500, timestamp: daysAgo(12) },
-  { id: "d-005", name: "Deepa Menon", email: "deepa@example.com", amount: 1000, timestamp: daysAgo(15) },
+  {
+    id: "d-test-001",
+    name: "Test Donor",
+    email: "test.donor@listeninn.org",
+    amount: 100,
+    timestamp: new Date().toISOString(),
+  },
 ];
 
 const INITIAL_FEEDBACKS: Feedback[] = [
-  { id: "f-001", name: "Kavya R.", rating: 5, comment: "The helpline volunteer was incredibly patient. I felt truly heard for the first time in months. Thank you, ListenInn.", timestamp: daysAgo(3), aiSentiment: "Positive" },
-  { id: "f-002", name: "Anonymous", rating: 4, comment: "Good service but the wait time on the helpline was a bit long. Once connected, the experience was great.", timestamp: daysAgo(6), aiSentiment: "Neutral" },
-  { id: "f-003", name: "Sanjay M.", rating: 5, comment: "The youth workshop at our school was transformative. Students opened up in ways we've never seen before.", timestamp: daysAgo(10), aiSentiment: "Positive" },
-  { id: "f-004", name: "Neha P.", rating: 3, comment: "I appreciated the effort but felt the counselor wasn't fully understanding my situation. Maybe more training needed.", timestamp: daysAgo(14), aiSentiment: "Negative" },
+  {
+    id: "f-test-001",
+    name: "Test Feedback",
+    rating: 5,
+    comment: "This is a test feedback record. All features are working correctly. Used to verify the feedback panel and sentiment analysis.",
+    timestamp: new Date().toISOString(),
+    aiSentiment: "Positive",
+  },
 ];
 
 const INITIAL_CALLS: CallSession[] = [
   {
-    id: "call-001",
-    date: daysAgo(1),
-    durationMinutes: 45,
-    transcript: "User: I just feel so overwhelmed with my exams. I can't sleep, and my chest feels tight.\nVolunteer: I'm here for you. It sounds like the pressure is really heavy right now. Can you tell me what a typical night looks like for you lately?\nUser: I just toss and turn. I'm afraid of failing my parents. They sacrificed so much.\nVolunteer: That's a lot to carry. It's completely understandable to feel anxious given their sacrifices. Let's talk about some grounding techniques...",
+    id: "call-test-001",
+    date: new Date().toISOString(),
+    durationMinutes: 15,
+    transcript: "User: Hello, this is a test session.\nVolunteer: Hi! This is a test session to verify the conversation analysis workflow.\nUser: Everything looks good.\nVolunteer: Great! The AI analysis can be triggered using the Analyze button.",
     analyzed: false,
     emotions: [],
     concerns: [],
     anonymizedSummary: "",
     sentiment: null,
   },
-  {
-    id: "call-002",
-    date: daysAgo(3),
-    durationMinutes: 20,
-    transcript: "User: I lost my job yesterday. I don't know how I'm going to pay rent. I'm scared.\nVolunteer: I am so sorry to hear that. Losing your livelihood is incredibly stressful. You have every right to feel scared right now.\nUser: I haven't told my wife yet. I can't face her.\nVolunteer: Taking that first step to share the news is daunting. Whenever you're ready, we can explore how to start that conversation, but right now, let's just focus on how you're feeling.",
-    analyzed: true,
-    emotions: ["Fear", "Stress", "Shame"],
-    concerns: ["Financial insecurity", "Job loss", "Relationship stress"],
-    anonymizedSummary: "Caller experienced recent job loss and is expressing severe financial anxiety and fear of informing their spouse. Volunteer provided validation and emotional support without rushing to problem-solving.",
-    sentiment: "Negative",
-  }
 ];
 
 const INITIAL_SURVEYS: SurveyResponse[] = [
-  { id: "srv-001", date: daysAgo(5), type: "beneficiary", satisfactionScore: 9, comments: "The peer group changed my life. I finally feel understood." },
-  { id: "srv-002", date: daysAgo(12), type: "volunteer", satisfactionScore: 8, comments: "Great training, but I wish we had more ongoing check-ins with supervisors." },
-  { id: "srv-003", date: daysAgo(20), type: "beneficiary", satisfactionScore: 7, comments: "Helpline was helpful but took a while to connect during peak hours." },
-  { id: "srv-004", date: daysAgo(25), type: "volunteer", satisfactionScore: 10, comments: "Volunteering here gives my life immense purpose. Incredible team." },
+  {
+    id: "srv-test-001",
+    date: new Date().toISOString(),
+    type: "beneficiary",
+    satisfactionScore: 9,
+    comments: "Test survey record — verify impact measurement panel.",
+  },
 ];
 
 const INITIAL_EVENTS: EventAttendance[] = [
-  { id: "evt-001", eventName: "School Mental Health Workshop", date: daysAgo(4), attendees: 120, platform: "in-person", engagementScore: 85 },
-  { id: "evt-002", eventName: "Anxiety Coping Webinar", date: daysAgo(10), attendees: 350, platform: "online", engagementScore: 92 },
-  { id: "evt-003", eventName: "World Mental Health Day Campaign", date: daysAgo(30), attendees: 5000, platform: "social-media", engagementScore: 78 },
+  {
+    id: "evt-test-001",
+    eventName: "Test Event",
+    date: new Date().toISOString(),
+    attendees: 10,
+    platform: "online",
+    engagementScore: 90,
+  },
 ];
 
 // ━━━━━━━━━━━━━━━━━━━ State Manager ━━━━━━━━━━━━━━━━━━━
@@ -328,6 +276,8 @@ function loadState(): AppState {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw) as Partial<AppState>;
+      // Shape validation — ensure it's a non-array object
+      if (typeof parsed !== "object" || Array.isArray(parsed)) return defaults;
       return { ...defaults, ...parsed };
     }
   } catch { /* ignore */ }
@@ -370,6 +320,16 @@ export function getState(): AppState {
 }
 
 export function resetState(): void {
+  _state = getDefaultState();
+  persist();
+  notify();
+}
+
+/** Clears ALL localStorage stores (db + connect submissions + traffic) and reseeds test data. */
+export function resetToTest(): void {
+  localStorage.removeItem("listeninn-db");
+  localStorage.removeItem("listeninn_connect_submissions");
+  localStorage.removeItem("listeninn_traffic");
   _state = getDefaultState();
   persist();
   notify();
@@ -467,14 +427,11 @@ export function screenVolunteerLocal(vol: Volunteer): AIScreening {
   const negHits = countKeywords(vol.motivation, NEGATIVE_WORDS);
   const skillCount = vol.skills.length;
 
-  // Fit Score: based on motivation depth, skill breadth, and personal experience signals
   let fitScore = Math.min(100, 50 + posHits * 5 + skillCount * 6 + Math.floor(motivLen / 30) * 2);
-  fitScore = Math.max(30, fitScore - negHits * 2); // slight negative adjustment
+  fitScore = Math.max(30, fitScore - negHits * 2);
 
-  // Empathy Rating: weighted towards emotional vocabulary and personal experience
   let empathyRating = Math.min(100, 40 + posHits * 8 + (vol.motivation.toLowerCase().includes("personal") ? 10 : 0) + (vol.motivation.toLowerCase().includes("experience") ? 8 : 0) + skillCount * 3);
 
-  // Recommended projects based on skill overlap
   const projectScores = INITIAL_PROJECTS.map((p) => {
     const required = SKILL_MAP[p.id] || p.requiredSkills;
     const overlap = vol.skills.filter((s) => required.some((r) => r.toLowerCase().includes(s.toLowerCase()) || s.toLowerCase().includes(r.toLowerCase()))).length;
@@ -483,10 +440,8 @@ export function screenVolunteerLocal(vol: Volunteer): AIScreening {
   const recommendedProjects = projectScores.filter((p) => p.score > 0).slice(0, 2).map((p) => p.title);
   if (recommendedProjects.length === 0) recommendedProjects.push(projectScores[0].title);
 
-  // Generate insights paragraph
   const insights = `${vol.name} demonstrates ${empathyRating >= 80 ? "exceptional" : empathyRating >= 60 ? "strong" : "developing"} empathetic capacity with ${posHits > 3 ? "deeply personal and emotionally rich" : posHits > 1 ? "genuine and thoughtful" : "clear"} motivation. Their skill set in ${vol.skills.slice(0, 3).join(", ")} aligns well with ${recommendedProjects[0]}. ${motivLen > 100 ? "The detailed application shows strong commitment and self-awareness." : "A concise but sincere application."} Overall fit assessment: ${fitScore >= 85 ? "Excellent candidate — recommend fast-track approval." : fitScore >= 70 ? "Good candidate — standard onboarding recommended." : "Promising applicant — may benefit from additional training before placement."}`;
 
-  // Risk assessment
   const risks = negHits > 2
     ? "Application contains emotional vulnerability indicators. Recommend pairing with experienced mentor and regular supervisory check-ins."
     : negHits > 0
@@ -524,12 +479,12 @@ export function analyzeCallLocal(callId: string): void {
   const negHits = countKeywords(call.transcript, NEGATIVE_WORDS);
   const posHits = countKeywords(call.transcript, POSITIVE_WORDS);
   
-  const emotions = [];
+  const emotions: string[] = [];
   if (negHits > 2) emotions.push("Stress", "Anxiety");
   if (posHits > 2) emotions.push("Relief", "Gratitude");
   if (emotions.length === 0) emotions.push("Neutral");
 
-  const concerns = [];
+  const concerns: string[] = [];
   if (call.transcript.toLowerCase().includes("job") || call.transcript.toLowerCase().includes("money")) concerns.push("Financial stress");
   if (call.transcript.toLowerCase().includes("school") || call.transcript.toLowerCase().includes("exam")) concerns.push("Academic pressure");
   if (concerns.length === 0) concerns.push("General wellbeing");
@@ -552,7 +507,9 @@ export function analyzeCallLocal(callId: string): void {
 }
 
 export function queryNGOBrainLocal(query: string): string {
-  const lower = query.toLowerCase();
+  // B5: sanitize input — max 500 chars, strip potential injection chars
+  const safe = String(query).slice(0, 500).replace(/[<>]/g, "");
+  const lower = safe.toLowerCase();
   if (lower.includes("volunteer")) return `We currently have ${_state.volunteers.length} volunteers. ${_state.volunteers.filter(v => v.status === 'approved').length} are approved.`;
   if (lower.includes("project")) return `We run ${_state.projects.length} active projects including Helpline and Workshops.`;
   if (lower.includes("donat") || lower.includes("fund")) return `Total funds raised: ₹${_state.donations.reduce((s, d) => s + d.amount, 0)}.`;
@@ -662,7 +619,7 @@ export async function queryNGOBrainAI(query: string): Promise<string> {
     const prompt = `You are the 'NGO Brain' AI for ListenInn Foundation. You have access to the entire NGO database. Answer the admin's query concisely and accurately using this data context:
 ${dbDump}
 
-Admin Query: "${query}"`;
+Admin Query: "${String(query).slice(0, 500)}"`;
     return await callGemini(prompt);
   } catch {
     return queryNGOBrainLocal(query);

@@ -2,7 +2,8 @@ import { Link, useLocation } from "@tanstack/react-router";
 import logo from "@/assets/listeninn-logo.png";
 import { Button } from "@/components/ui/button";
 import { Phone, Instagram, Menu, X, Settings } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { recordPageVisit } from "@/lib/trafficStore";
 
 export function WaveTop() {
   return (
@@ -50,6 +51,10 @@ const NAV = [
 export function Header() {
   const [mobileOpen, setMobileOpen] = useState(false);
   const location = useLocation();
+
+  useEffect(() => {
+    recordPageVisit(location.pathname);
+  }, [location.pathname]);
 
   return (
     <header className="sticky top-0 z-50 backdrop-blur-md bg-background/80 border-b border-border/60">
