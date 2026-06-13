@@ -170,7 +170,7 @@ function ContactPage() {
                 {
                   icon: Mail,
                   title: "Email",
-                  value: "hello@listeninn.org",
+                  value: "listeninnfoundation@gmail.com",
                   sub: "Replies within 24 hours",
                 },
                 {

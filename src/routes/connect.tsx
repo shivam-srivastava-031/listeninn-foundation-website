@@ -242,7 +242,7 @@ function ConnectPage() {
               <div>
                 <div className="connect-hero-brand-name">LISTENINN</div>
                 <div className="connect-hero-brand-sub">FOUNDATION</div>
-                <div className="connect-hero-brand-tagline">Where Every Voice is Heard With Heart</div>
+                <div className="connect-hero-brand-tagline">A Safe Space To Talk</div>
               </div>
             </div>
             <h1 className="connect-hero-title">
@@ -672,7 +672,7 @@ function ConnectPage() {
           <div className="connect-form-footer">
             <span>© Listeninn Foundation. All rights reserved.</span>
             <span className="connect-footer-sep">·</span>
-            <span>Where Every Voice Is Heard With Heart 💜</span>
+            <span>A Safe Space To Talk 💜</span>
           </div>
         </form>
       </section>

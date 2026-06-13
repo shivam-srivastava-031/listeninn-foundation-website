@@ -23,11 +23,10 @@ import {
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: "ListenInn Foundation — Where every voice is heard with heart ❤️" },
+      { title: "ListenInn Foundation — A safe space to talk ❤️" },
       {
-        name: "description",
         content:
-          "ListenInn Foundation: confidential mental health support, counseling, support groups and a 24/7 helpline. Where every voice is heard with heart.",
+          "ListenInn Foundation: confidential mental health support, counseling, support groups and a 24/7 helpline. A safe space to talk.",
       },
     ],
   }),
@@ -60,7 +59,7 @@ function Hero() {
           {/* ✨ Prominent Tagline */}
           <div className="relative">
             <p className="text-2xl md:text-3xl font-bold text-gradient-brand leading-snug">
-              "Where every voice is heard with heart.{" "}
+              "A safe space to talk.{" "}
               <span className="text-red-500 animate-pulse inline-block">❤️</span>"
             </p>
             <div className="absolute -left-4 top-0 bottom-0 w-1 rounded-full bg-gradient-brand" />
@@ -454,7 +453,7 @@ function ContactSection() {
             <div className="space-y-4">
               {[
                 { icon: Phone, label: "Helpline", value: "1-800-LISTEN-IN", sub: "Available 24 hours" },
-                { icon: Mail, label: "Email", value: "hello@listeninn.org", sub: "Replies within 24 hours" },
+                { icon: Mail, label: "Email", value: "listeninnfoundation@gmail.com", sub: "Replies within 24 hours" },
                 { icon: MessageCircle, label: "Chat", value: "Start a chat", sub: "Mon–Sun, 8am–11pm" },
               ].map((c) => (
                 <div
