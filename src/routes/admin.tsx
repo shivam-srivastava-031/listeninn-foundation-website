@@ -26,6 +26,10 @@ import {
   screenVolunteerLocal, screenVolunteerAI, getProjectMatchScores,
   testGeminiConnection, resetState, analyzeCallAI, queryNGOBrainAI,
 } from "@/lib/db";
+import {
+  type ConnectSubmission,
+  getSubmissions, deleteSubmission, clearAllSubmissions, exportSubmissionsToExcel,
+} from "@/lib/connectStore";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -47,7 +51,7 @@ function useDB(): AppState {
 
 // ━━━━━━━━━━━━━━━━━━━ Tab types ━━━━━━━━━━━━━━━━━━━
 
-type Tab = "screening" | "leads" | "matching" | "participation" | "impact" | "conversations" | "reminders" | "logs" | "brain" | "settings";
+type Tab = "screening" | "leads" | "matching" | "participation" | "impact" | "conversations" | "reminders" | "logs" | "brain" | "connect" | "settings";
 
 const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "screening", label: "Screening", icon: Shield },
@@ -59,12 +63,144 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "reminders", label: "Reminders", icon: Bell },
   { key: "logs", label: "Feedback", icon: MessageSquare },
   { key: "brain", label: "NGO Brain", icon: Database },
+  { key: "connect", label: "Connect Forms", icon: Heart },
   { key: "settings", label: "Settings", icon: Settings },
 ];
+
+// ━━━━━━━━━━━━━━━━━━━ Admin Auth Gate ━━━━━━━━━━━━━━━━━━━
+
+const ADMIN_PASSWORD = "listeninn@admin2025"; // ← change this to your preferred password
+const SESSION_KEY = "listeninn_admin_auth";
+
+function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
+  const [pwd, setPwd] = useState("");
+  const [error, setError] = useState(false);
+  const [showPwd, setShowPwd] = useState(false);
+  const [shaking, setShaking] = useState(false);
+
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (pwd === ADMIN_PASSWORD) {
+      sessionStorage.setItem(SESSION_KEY, "1");
+      onUnlock();
+    } else {
+      setError(true);
+      setShaking(true);
+      setTimeout(() => setShaking(false), 600);
+      setTimeout(() => setError(false), 2500);
+      setPwd("");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-hero flex items-center justify-center px-4">
+      <div
+        className={`w-full max-w-md bg-card rounded-3xl shadow-soft border border-border p-10 space-y-8 ${shaking ? "admin-shake" : ""}`}
+      >
+        {/* Logo + title */}
+        <div className="text-center space-y-3">
+          <div className="inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-brand shadow-soft mx-auto">
+            <KeyRound className="h-8 w-8 text-white" />
+          </div>
+          <h1 className="text-2xl font-extrabold tracking-tight">Admin Portal</h1>
+          <p className="text-sm text-muted-foreground">
+            Enter your admin password to access the dashboard
+          </p>
+        </div>
+
+        {/* Form */}
+        <form onSubmit={handleLogin} className="space-y-5">
+          <div className="space-y-2">
+            <label htmlFor="admin-password" className="text-sm font-semibold text-foreground">
+              Password
+            </label>
+            <div className="relative">
+              <input
+                id="admin-password"
+                type={showPwd ? "text" : "password"}
+                value={pwd}
+                onChange={(e) => { setPwd(e.target.value); setError(false); }}
+                placeholder="Enter admin password"
+                autoComplete="current-password"
+                autoFocus
+                className={`w-full h-11 px-4 pr-11 rounded-xl border text-sm outline-none transition-all
+                  ${error
+                    ? "border-destructive bg-destructive/5 focus:ring-2 focus:ring-destructive/20"
+                    : "border-input bg-background focus:border-primary focus:ring-2 focus:ring-primary/15"
+                  }`}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd(!showPwd)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                tabIndex={-1}
+                aria-label={showPwd ? "Hide password" : "Show password"}
+              >
+                {showPwd ? (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94"/>
+                    <path d="M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19"/>
+                    <line x1="1" y1="1" x2="23" y2="23"/>
+                  </svg>
+                ) : (
+                  <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                    <circle cx="12" cy="12" r="3"/>
+                  </svg>
+                )}
+              </button>
+            </div>
+            {error && (
+              <p className="text-xs text-destructive flex items-center gap-1">
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                Incorrect password. Please try again.
+              </p>
+            )}
+          </div>
+
+          <Button
+            type="submit"
+            className="w-full h-11 bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold shadow-soft"
+          >
+            <Shield className="mr-2 h-4 w-4" />
+            Access Dashboard
+          </Button>
+        </form>
+
+        <p className="text-center text-xs text-muted-foreground">
+          🔒 This area is restricted to authorised administrators only.
+        </p>
+      </div>
+
+      <style>{`
+        @keyframes admin-shake {
+          0%, 100% { transform: translateX(0); }
+          15% { transform: translateX(-8px); }
+          30% { transform: translateX(8px); }
+          45% { transform: translateX(-6px); }
+          60% { transform: translateX(6px); }
+          75% { transform: translateX(-3px); }
+          90% { transform: translateX(3px); }
+        }
+        .admin-shake { animation: admin-shake 0.6s ease-in-out; }
+      `}</style>
+    </div>
+  );
+}
 
 // ━━━━━━━━━━━━━━━━━━━ Admin Page ━━━━━━━━━━━━━━━━━━━
 
 function AdminPage() {
+  const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
+
+  if (!unlocked) {
+    return <AdminLoginGate onUnlock={() => setUnlocked(true)} />;
+  }
+
+  return <AdminDashboard />;
+}
+
+function AdminDashboard() {
   const db = useDB();
   const [tab, setTab] = useState<Tab>("screening");
 
@@ -76,6 +212,7 @@ function AdminPage() {
   const avgRating = db.feedbacks.length > 0
     ? (db.feedbacks.reduce((s, f) => s + f.rating, 0) / db.feedbacks.length).toFixed(1)
     : "—";
+
 
   return (
     <PageShell>
@@ -94,17 +231,33 @@ function AdminPage() {
                 <Brain className="h-3 w-3" />
                 {db.settings.useGemini ? "Gemini AI Active" : "Simulated AI"}
               </Badge>
+              <button
+                onClick={() => {
+                  sessionStorage.removeItem(SESSION_KEY);
+                  window.location.reload();
+                }}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-medium border border-border text-muted-foreground hover:text-red-600 hover:border-red-300 hover:bg-red-50 transition-all"
+                title="Lock admin panel"
+              >
+                <svg className="h-3.5 w-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+                Lock
+              </button>
             </div>
           </div>
 
+
           {/* Summary Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
             {[
               { label: "Volunteers", value: db.volunteers.length.toString(), icon: Users, color: "text-primary" },
               { label: "Match Rate", value: `${matchRate}%`, icon: Target, color: "text-accent" },
               { label: "Total Hours", value: totalHours.toString(), icon: Clock, color: "text-primary" },
               { label: "Funds Raised", value: `₹${totalDonations.toLocaleString()}`, icon: DollarSign, color: "text-accent" },
               { label: "Avg Rating", value: avgRating, icon: Star, color: "text-yellow-500" },
+              { label: "Connect Forms", value: getSubmissions().length.toString(), icon: Heart, color: "text-rose-500" },
             ].map((c) => (
               <div
                 key={c.label}
@@ -155,6 +308,7 @@ function AdminPage() {
           {tab === "reminders" && <RemindersPanel db={db} />}
           {tab === "logs" && <LogsPanel db={db} />}
           {tab === "brain" && <NGOBrainPanel db={db} />}
+          {tab === "connect" && <ConnectPanel />}
           {tab === "settings" && <SettingsPanel db={db} />}
         </div>
       </section>
@@ -162,7 +316,230 @@ function AdminPage() {
   );
 }
 
+// ━━━━━━━━━━━━━━━━━━━ CONNECT PANEL ━━━━━━━━━━━━━━━━━━━
+
+function ConnectPanel() {
+  const [submissions, setSubmissions] = useState<ConnectSubmission[]>(() => getSubmissions());
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState<string | null>(null);
+
+  const refresh = () => setSubmissions([...getSubmissions()]);
+
+  const handleDelete = (id: string) => {
+    deleteSubmission(id);
+    toast.success("Submission deleted.");
+    refresh();
+  };
+
+  const handleClearAll = () => {
+    if (!confirm(`Delete all ${submissions.length} connect submissions? This cannot be undone.`)) return;
+    clearAllSubmissions();
+    toast.info("All connect submissions cleared.");
+    refresh();
+  };
+
+  const handleExport = () => {
+    if (submissions.length === 0) {
+      toast.error("No submissions to export.");
+      return;
+    }
+    exportSubmissionsToExcel(submissions);
+    toast.success(`Exported ${submissions.length} submissions to Excel! 📊`);
+  };
+
+  const filtered = submissions.filter((s) => {
+    const q = search.toLowerCase();
+    return (
+      s.preferredName.toLowerCase().includes(q) ||
+      s.fullName.toLowerCase().includes(q) ||
+      s.email.toLowerCase().includes(q) ||
+      s.phone.includes(q) ||
+      s.city.toLowerCase().includes(q) ||
+      s.state.toLowerCase().includes(q) ||
+      s.topics.join(" ").toLowerCase().includes(q)
+    );
+  });
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Heart className="h-5 w-5 text-rose-500" />
+            Connect Form Submissions
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            {submissions.length} total submission{submissions.length !== 1 ? "s" : ""} received
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            onClick={handleExport}
+            className="bg-gradient-brand text-primary-foreground hover:opacity-90"
+          >
+            <Download className="mr-2 h-4 w-4" /> Export to Excel
+          </Button>
+          {submissions.length > 0 && (
+            <Button onClick={handleClearAll} variant="outline" className="border-red-300 text-red-600 hover:bg-red-50">
+              <Trash2 className="mr-2 h-4 w-4" /> Clear All
+            </Button>
+          )}
+        </div>
+      </div>
+
+      {/* Search */}
+      <div className="relative max-w-sm">
+        <svg className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input
+          type="text"
+          value={search}
+          onChange={(e) => setSearch(e.target.value)}
+          placeholder="Search by name, email, city, topic…"
+          className="w-full pl-9 pr-4 py-2 text-sm border border-input rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-ring"
+        />
+      </div>
+
+      {/* Table */}
+      {filtered.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border bg-card p-12 text-center text-muted-foreground">
+          <Heart className="h-10 w-10 mx-auto mb-3 opacity-30" />
+          <p className="font-medium">{submissions.length === 0 ? "No connect submissions yet" : "No results match your search"}</p>
+          <p className="text-sm mt-1">
+            {submissions.length === 0
+              ? "Submissions from the Connect form will appear here."
+              : "Try a different search term."}
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border bg-muted/30 text-left whitespace-nowrap">
+                  <th className="px-4 py-3 font-medium text-muted-foreground">ID</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Name</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Contact</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Location</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Age</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Topics</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Reach Via</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Date</th>
+                  <th className="px-4 py-3 font-medium text-muted-foreground">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.slice().reverse().map((s) => (
+                  <>
+                    <tr
+                      key={s.id}
+                      className="border-b border-border/50 hover:bg-muted/20 transition-colors cursor-pointer"
+                      onClick={() => setExpanded(expanded === s.id ? null : s.id)}
+                    >
+                      <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{s.id.slice(0, 12)}…</td>
+                      <td className="px-4 py-3">
+                        <div className="font-semibold">{s.preferredName}</div>
+                        {s.fullName && <div className="text-xs text-muted-foreground">{s.fullName}</div>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="text-xs">{s.phone}</div>
+                        {s.email && <div className="text-xs text-muted-foreground">{s.email}</div>}
+                      </td>
+                      <td className="px-4 py-3 text-xs">{s.city}{s.state ? `, ${s.state}` : ""}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.ageGroup || "—"}</td>
+                      <td className="px-4 py-3 max-w-[160px]">
+                        <div className="flex flex-wrap gap-1">
+                          {s.topics.slice(0, 2).map((t) => (
+                            <Badge key={t} variant="secondary" className="text-[10px] px-1.5 py-0">{t}</Badge>
+                          ))}
+                          {s.topics.length > 2 && (
+                            <Badge variant="outline" className="text-[10px] px-1.5 py-0">+{s.topics.length - 2}</Badge>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground">{s.reachMethod || "—"}</td>
+                      <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
+                        {new Date(s.submittedAt).toLocaleDateString("en-IN", { day: "2-digit", month: "short", year: "numeric" })}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button
+                          onClick={(e) => { e.stopPropagation(); handleDelete(s.id); }}
+                          className="inline-flex items-center justify-center h-7 w-7 rounded-lg text-muted-foreground hover:text-red-600 hover:bg-red-50 transition-colors"
+                          title="Delete submission"
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+
+                    {/* Expanded story + details row */}
+                    {expanded === s.id && (
+                      <tr key={`${s.id}-exp`} className="bg-muted/10 border-b border-border/50">
+                        <td colSpan={9} className="px-6 py-5">
+                          <div className="grid md:grid-cols-3 gap-6">
+                            {/* Story */}
+                            <div className="md:col-span-2">
+                              <div className="text-xs font-semibold text-muted-foreground mb-2 uppercase tracking-wider">Story / Message</div>
+                              <p className="text-sm leading-relaxed bg-white border border-border rounded-xl p-4 italic text-foreground/80 whitespace-pre-wrap">
+                                "{s.story || "—"}"
+                              </p>
+                            </div>
+                            {/* Meta */}
+                            <div className="space-y-4">
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">All Topics</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {s.topics.map((t) => <Badge key={t} className="bg-gradient-brand text-primary-foreground text-xs">{t}</Badge>)}
+                                  {s.otherTopic && <Badge variant="outline" className="text-xs">Other: {s.otherTopic}</Badge>}
+                                </div>
+                              </div>
+                              <div>
+                                <div className="text-xs font-semibold text-muted-foreground mb-1.5 uppercase tracking-wider">Support Needed</div>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {s.supportTypes.map((t) => <Badge key={t} variant="secondary" className="text-xs">{t}</Badge>)}
+                                </div>
+                              </div>
+                              <div className="grid grid-cols-2 gap-3 text-xs">
+                                <div>
+                                  <div className="text-muted-foreground font-medium">Availability</div>
+                                  <div>{s.availability || "—"}</div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground font-medium">Reach Via</div>
+                                  <div>{s.reachMethod || "—"}</div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground font-medium">Submitted</div>
+                                  <div>{new Date(s.submittedAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</div>
+                                </div>
+                                <div>
+                                  <div className="text-muted-foreground font-medium">Full ID</div>
+                                  <div className="font-mono text-[10px] break-all">{s.id}</div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                  </>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Footer count */}
+          <div className="px-5 py-3 border-t border-border/50 bg-muted/20 text-xs text-muted-foreground">
+            Showing {filtered.length} of {submissions.length} submissions
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // ━━━━━━━━━━━━━━━━━━━ 1.5 LEADS PANEL ━━━━━━━━━━━━━━━━━━━
+
 
 function LeadsPanel({ db }: { db: AppState }) {
   const exportCSV = () => {

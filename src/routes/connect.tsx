@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
+import { saveSubmission } from "@/lib/connectStore";
 import { PageShell } from "@/components/layout";
 import {
   User,
@@ -142,6 +143,7 @@ function SectionSidebar({ index }: { index: number }) {
 }
 
 function ConnectPage() {
+  const formRef = useRef<HTMLFormElement>(null);
   const [selectedTopics, setSelectedTopics] = useState<string[]>([]);
   const [otherTopic, setOtherTopic] = useState("");
   const [selectedSupport, setSelectedSupport] = useState<string[]>([]);
@@ -170,8 +172,29 @@ function ConnectPage() {
       toast.error("Please accept all consent statements to proceed.");
       return;
     }
+    if (!formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const get = (key: string) => (fd.get(key) as string | null) ?? "";
+
     setSubmitting(true);
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1200));
+
+    saveSubmission({
+      preferredName: get("preferred_name"),
+      fullName: get("full_name"),
+      ageGroup: get("age_group"),
+      email: get("email"),
+      phone: get("phone"),
+      city: get("city"),
+      state: get("state"),
+      topics: selectedTopics,
+      otherTopic,
+      story: get("story"),
+      supportTypes: selectedSupport,
+      reachMethod,
+      availability,
+    });
+
     setSubmitting(false);
     setSubmitted(true);
     toast.success("Your story has been shared! We'll be in touch soon. 💜");
@@ -287,7 +310,7 @@ function ConnectPage() {
 
       {/* ── Main Form ── */}
       <section className="connect-form-section">
-        <form onSubmit={handleSubmit} className="connect-form-wrapper" noValidate>
+        <form ref={formRef} onSubmit={handleSubmit} className="connect-form-wrapper" noValidate>
 
           {/* ── SECTION 01 – About You ── */}
           <div className="connect-section-card">
