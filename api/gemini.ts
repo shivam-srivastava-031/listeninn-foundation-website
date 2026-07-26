@@ -20,7 +20,17 @@ export default async function handler(req: any, res: any): Promise<void> {
 
   // Capability check — lets the client know if real AI is available, no secret leaked.
   if (req.method === "GET") {
-    res.status(200).json({ enabled: Boolean(key), model });
+    // TEMP DIAGNOSTIC: report which env var NAMES are visible (never values),
+    // so we can confirm GEMINI_API_KEY is actually configured. Remove after.
+    const seenNames = Object.keys(process.env)
+      .filter((n) => /GEMINI|GOOGLE|API_KEY/i.test(n))
+      .sort();
+    res.status(200).json({
+      enabled: Boolean(key),
+      model,
+      keyLength: key ? key.length : 0,
+      matchingEnvNames: seenNames,
+    });
     return;
   }
 
