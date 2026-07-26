@@ -6,15 +6,6 @@ import { routeTree } from "./routeTree.gen";
 
 import "./styles.css";
 
-// ── TEMP DIAGNOSTIC: verify VITE_GEMINI_API_KEY reaches the build (value masked) ──
-// Remove after confirming. Never logs the full key.
-{
-  const k = import.meta.env.VITE_GEMINI_API_KEY;
-  const masked = typeof k === "string" && k.length > 8 ? `${k.slice(0, 4)}…${k.slice(-2)}` : "(none)";
-  // eslint-disable-next-line no-console
-  console.log("[ENV CHECK] VITE_GEMINI_API_KEY present:", Boolean(k && k.length), "| length:", k?.length ?? 0, "| masked:", masked);
-}
-
 const queryClient = new QueryClient();
 
 // Create a new router instance
