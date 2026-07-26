@@ -25,6 +25,7 @@ import {
   PROGRAMS_INFO,
 } from "@/lib/db";
 import { recordChatEvent, recordFaqQuery } from "@/lib/trafficStore";
+import { onOpenChat, type ChatFlow } from "@/lib/chatBus";
 
 // ━━━━━━━━━━━━━━━━━━━ Types ━━━━━━━━━━━━━━━━━━━
 
@@ -140,6 +141,24 @@ export function AiChatWidget() {
     setFbStep("rating");
     botReply("We'd love to hear from you! 📝 First, how would you rate your experience with ListenInn? (1-5 stars)", 300);
   };
+
+  // ── Open-chat requests from page buttons (e.g. "Apply to Volunteer") ──
+  useEffect(() => {
+    const flowStarters: Record<ChatFlow, () => void> = {
+      menu: goToMenu,
+      faq: startFaq,
+      programs: startPrograms,
+      volunteer: startVolunteer,
+      donate: startDonate,
+      feedback: startFeedback,
+    };
+    return onOpenChat((flow) => {
+      setOpen(true);
+      recordChatEvent("open");
+      flowStarters[flow]?.();
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // ── Send handler ──
 

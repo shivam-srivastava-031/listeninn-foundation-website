@@ -6,6 +6,7 @@ import { PageShell, WaveTop } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { SERVICES } from "@/lib/services";
 import { LeafyVine } from "@/components/artwork";
+import { openChat } from "@/lib/chatBus";
 import {
   Heart,
   Ear,
@@ -344,12 +345,10 @@ function VolunteerSection() {
                 </div>
                 <Button
                   size="lg"
-                  asChild
+                  onClick={() => openChat("volunteer")}
                   className="w-full bg-gradient-brand text-primary-foreground shadow-soft hover:opacity-90 h-12"
                 >
-                  <Link to="/contact">
-                    <HandHeart className="mr-2 h-5 w-5" /> Apply to Volunteer
-                  </Link>
+                  <HandHeart className="mr-2 h-5 w-5" /> Apply to Volunteer
                 </Button>
               </div>
             </div>

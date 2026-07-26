@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { PageShell } from "@/components/layout";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
+import { openChat } from "@/lib/chatBus";
 import {
   Heart,
   HandHeart,
@@ -109,12 +110,14 @@ function GetInvolvedPage() {
                 title: "Volunteer",
                 desc: "Train as a listener and give a few hours a week to someone who needs it. Our 40-hour training program equips you with active listening skills, empathy techniques, and crisis protocols.",
                 cta: "Apply to volunteer",
+                onClick: () => openChat("volunteer"),
               },
               {
                 icon: Users,
                 title: "Partner with us",
                 desc: "Bring ListenInn to your school, workplace, or community organisation. We offer customized mental health workshops, listening booths, and awareness campaigns.",
                 cta: "Become a partner",
+                to: "/connect" as const,
               },
             ].map((o) => (
               <div
@@ -124,16 +127,27 @@ function GetInvolvedPage() {
                 <o.icon className="h-10 w-10 text-accent mb-5" />
                 <h3 className="text-2xl font-semibold mb-3">{o.title}</h3>
                 <p className="text-muted-foreground mb-6 leading-relaxed">{o.desc}</p>
-                <Button
-                  variant="outline"
-                  size="lg"
-                  className="border-primary/30 hover:bg-primary/5"
-                  asChild
-                >
-                  <Link to="/contact">
+                {o.onClick ? (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="border-primary/30 hover:bg-primary/5"
+                    onClick={o.onClick}
+                  >
                     {o.cta} <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    className="border-primary/30 hover:bg-primary/5"
+                    asChild
+                  >
+                    <Link to={o.to}>
+                      {o.cta} <ArrowRight className="ml-2 h-4 w-4" />
+                    </Link>
+                  </Button>
+                )}
               </div>
             ))}
           </div>
