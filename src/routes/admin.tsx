@@ -23,9 +23,10 @@ import {
 import {
   type Volunteer, type AppState,
   getState, subscribe, updateVolunteer, addParticipation, addReminder,
-  markReminderSent, updateSettings, updateProjectVolunteerCount,
+  markReminderSent, updateProjectVolunteerCount,
   screenVolunteerLocal, screenVolunteerAI, getProjectMatchScores,
   testGeminiConnection, resetState, resetToTest, analyzeCallAI, queryNGOBrainAI,
+  isGeminiAvailable,
 } from "@/lib/db";
 import {
   type ConnectSubmission,
@@ -207,6 +208,8 @@ function AdminPage() {
 function AdminDashboard({ onLock }: { onLock: () => void }) {
   const db = useDB();
   const [tab, setTab] = useState<Tab>("screening");
+  const [aiActive, setAiActive] = useState(false);
+  useEffect(() => { isGeminiAvailable().then(setAiActive); }, []);
 
   const totalHours = db.participationLogs.reduce((s, l) => s + l.hours, 0);
   const totalDonations = db.donations.reduce((s, d) => s + d.amount, 0);
@@ -234,7 +237,7 @@ function AdminDashboard({ onLock }: { onLock: () => void }) {
             <div className="flex items-center gap-2">
               <Badge variant="outline" className="border-primary/30 text-primary gap-1">
                 <Brain className="h-3 w-3" />
-                {db.settings.useGemini ? "Gemini AI Active" : "Simulated AI"}
+                {aiActive ? "Gemini AI Active" : "Simulated AI"}
               </Badge>
               <button
                 onClick={onLock}
@@ -1766,28 +1769,21 @@ function NGOBrainPanel({ db }: { db: AppState }) {
 
 // ━━━━━━━━━━━━━━━━━━━ 9. SETTINGS PANEL ━━━━━━━━━━━━━━━━━━━
 
-function SettingsPanel({ db }: { db: AppState }) {
-  const [apiKey, setApiKey] = useState(db.settings.geminiApiKey);
+function SettingsPanel(_props: { db: AppState }) {
   const [testing, setTesting] = useState(false);
+  const [status, setStatus] = useState<"checking" | "active" | "inactive">("checking");
 
-  const saveKey = () => {
-    updateSettings({ geminiApiKey: apiKey });
-    toast.success("API key saved! 🔑");
-  };
-
-  const toggleGemini = () => {
-    const newVal = !db.settings.useGemini;
-    if (newVal && !db.settings.geminiApiKey) { toast.error("Please save an API key first."); return; }
-    updateSettings({ useGemini: newVal });
-    toast.success(newVal ? "Gemini AI activated! 🚀" : "Switched to simulated AI mode.");
-  };
+  useEffect(() => {
+    isGeminiAvailable().then((ok) => setStatus(ok ? "active" : "inactive"));
+  }, []);
 
   const testConnection = async () => {
     setTesting(true);
-    const ok = await testGeminiConnection(apiKey);
+    const ok = await testGeminiConnection();
     setTesting(false);
-    if (ok) toast.success("Connection successful! ✅");
-    else toast.error("Connection failed. Please check your API key.");
+    setStatus(ok ? "active" : "inactive");
+    if (ok) toast.success("Live AI connection successful! ✅");
+    else toast.error("AI not reachable. Check GEMINI_API_KEY on the server & billing/quota.");
   };
 
   const handleReset = useCallback(() => {
@@ -1801,49 +1797,51 @@ function SettingsPanel({ db }: { db: AppState }) {
         <Settings className="h-5 w-5 text-primary" /> AI Settings
       </h2>
 
-      {/* API Key */}
+      {/* AI Status (key lives server-side) */}
       <div className="rounded-2xl border border-border bg-card p-6 shadow-card space-y-4">
-        <div className="flex items-center gap-2">
-          <KeyRound className="h-5 w-5 text-accent" />
-          <h3 className="font-semibold">Google Gemini API Key</h3>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
+            <h3 className="font-semibold">AI Mode</h3>
+          </div>
+          <span
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
+              status === "active"
+                ? "bg-green-100 text-green-700"
+                : status === "checking"
+                ? "bg-muted text-muted-foreground"
+                : "bg-amber-100 text-amber-700"
+            }`}
+          >
+            {status === "checking" ? (
+              <><Loader2 className="h-3 w-3 animate-spin" /> Checking…</>
+            ) : status === "active" ? (
+              <><ToggleRight className="h-3.5 w-3.5" /> Gemini AI Active</>
+            ) : (
+              <><ToggleLeft className="h-3.5 w-3.5" /> Simulated AI</>
+            )}
+          </span>
         </div>
         <p className="text-sm text-muted-foreground">
-          Enter your Gemini API key to enable real AI-powered screening, matching, and chat responses. Without a key, the system uses a highly realistic simulated AI engine.
+          {status === "active"
+            ? "Real AI is live — requests are proxied securely through the server, so the API key is never exposed to the browser."
+            : "Real AI is not active. The app is using the built-in simulated engine. Set the GEMINI_API_KEY environment variable on the server (Vercel → Settings → Environment Variables) and make sure the Google project has billing/quota enabled, then redeploy."}
         </p>
-        <div className="flex gap-2">
-          <Input
-            type="password"
-            value={apiKey}
-            onChange={(e) => setApiKey(e.target.value)}
-            placeholder="AIza..."
-            className="flex-1"
-          />
-          <Button onClick={saveKey} variant="outline"><CheckCircle2 className="mr-2 h-4 w-4" /> Save</Button>
-        </div>
-        <Button onClick={testConnection} disabled={testing || !apiKey} variant="outline" size="sm">
+        <Button onClick={testConnection} disabled={testing} variant="outline" size="sm">
           {testing ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Sparkles className="mr-2 h-4 w-4" />}
-          Test Connection
+          Test Live Connection
         </Button>
       </div>
 
-      {/* Toggle */}
-      <div className="rounded-2xl border border-border bg-card p-6 shadow-card">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="font-semibold flex items-center gap-2">
-              <Brain className="h-5 w-5 text-primary" />
-              AI Mode
-            </h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              {db.settings.useGemini ? "Using Google Gemini 2.0 Flash for real AI responses." : "Using simulated AI engine with heuristic analysis."}
-            </p>
-          </div>
-          <button onClick={toggleGemini} className="flex-shrink-0">
-            {db.settings.useGemini
-              ? <ToggleRight className="h-10 w-10 text-green-500" />
-              : <ToggleLeft className="h-10 w-10 text-muted-foreground" />}
-          </button>
+      {/* Setup help */}
+      <div className="rounded-2xl border border-border bg-card p-6 shadow-card space-y-2">
+        <div className="flex items-center gap-2">
+          <KeyRound className="h-5 w-5 text-accent" />
+          <h3 className="font-semibold">Where is the API key?</h3>
         </div>
+        <p className="text-sm text-muted-foreground">
+          For security, the Gemini key is stored on the server as the <code className="text-xs bg-muted px-1 py-0.5 rounded">GEMINI_API_KEY</code> environment variable — not in this panel and not in the browser bundle. To rotate it, update the variable in your hosting dashboard and redeploy.
+        </p>
       </div>
 
       {/* Reset */}

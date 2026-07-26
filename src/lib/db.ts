@@ -270,10 +270,6 @@ const INITIAL_EVENTS: EventAttendance[] = [
 
 const STORAGE_KEY = "listeninn-db";
 
-// Build-time Gemini key (set VITE_GEMINI_API_KEY in .env.local / deploy env).
-// When present, real AI is enabled automatically without touching the admin panel.
-const ENV_GEMINI_KEY = (import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
-
 function loadState(): AppState {
   const defaults = getDefaultState();
   try {
@@ -285,11 +281,6 @@ function loadState(): AppState {
       const merged = { ...defaults, ...parsed };
       // Deep-merge settings so a stale localStorage blob can't wipe out newer defaults.
       merged.settings = { ...defaults.settings, ...(parsed.settings ?? {}) };
-      // A build-time env key wins over an empty stored key and auto-enables real AI.
-      if (!merged.settings.geminiApiKey && ENV_GEMINI_KEY) {
-        merged.settings.geminiApiKey = ENV_GEMINI_KEY;
-        merged.settings.useGemini = true;
-      }
       return merged;
     }
   } catch { /* ignore */ }
@@ -304,7 +295,7 @@ function getDefaultState(): AppState {
     reminders: INITIAL_REMINDERS,
     donations: INITIAL_DONATIONS,
     feedbacks: INITIAL_FEEDBACKS,
-    settings: { geminiApiKey: ENV_GEMINI_KEY, useGemini: ENV_GEMINI_KEY.length > 0 },
+    settings: { geminiApiKey: "", useGemini: false },
     callSessions: INITIAL_CALLS,
     surveys: INITIAL_SURVEYS,
     events: INITIAL_EVENTS,
@@ -528,29 +519,45 @@ export function queryNGOBrainLocal(query: string): string {
   return "Based on our records, we are actively supporting mental health through helplines, workshops, and peer groups. Ask me specific questions about volunteers, projects, or donations!";
 }
 
-// ━━━━━━━━━━━━━━━━━ Gemini API Integration ━━━━━━━━━━━━━━━━━
+// ━━━━━━━━━━━━━━━━━ Gemini API Integration (via server-side proxy) ━━━━━━━━━━━━━━━━━
+// The API key lives ONLY on the server (Vercel env var GEMINI_API_KEY). The
+// browser talks to our own /api/gemini endpoint and never sees the key.
 
+const GEMINI_PROXY_URL = "/api/gemini";
+
+/** Sends a prompt to the server-side proxy and returns the generated text. */
 async function callGemini(prompt: string): Promise<string> {
-  const key = _state.settings.geminiApiKey;
-  if (!key) throw new Error("No Gemini API key configured");
-  const res = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
-    {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        contents: [{ parts: [{ text: prompt }] }],
-        generationConfig: { temperature: 0.7, maxOutputTokens: 1024 },
-      }),
-    },
-  );
-  if (!res.ok) throw new Error(`Gemini API error: ${res.status}`);
+  const res = await fetch(GEMINI_PROXY_URL, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ prompt }),
+  });
+  if (!res.ok) throw new Error(`Gemini proxy error: ${res.status}`);
   const data = await res.json();
-  return data?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
+  return data?.text ?? "";
+}
+
+// Cache the proxy capability check so we don't hit it on every message.
+let _geminiAvailable: boolean | null = null;
+
+/**
+ * Returns true if the server has a Gemini key configured (real AI available).
+ * Result is cached for the session. Falls back to false on any error.
+ */
+export async function isGeminiAvailable(): Promise<boolean> {
+  if (_geminiAvailable !== null) return _geminiAvailable;
+  try {
+    const res = await fetch(GEMINI_PROXY_URL, { method: "GET" });
+    const data = await res.json();
+    _geminiAvailable = Boolean(data?.enabled);
+  } catch {
+    _geminiAvailable = false;
+  }
+  return _geminiAvailable;
 }
 
 export async function screenVolunteerAI(vol: Volunteer): Promise<AIScreening> {
-  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+  if (!(await isGeminiAvailable())) {
     return screenVolunteerLocal(vol);
   }
   try {
@@ -576,7 +583,7 @@ Return JSON with these fields:
 }
 
 export async function analyzeCallAI(callId: string): Promise<void> {
-  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+  if (!(await isGeminiAvailable())) {
     analyzeCallLocal(callId);
     return;
   }
@@ -615,7 +622,7 @@ Return JSON with these fields:
 }
 
 export async function queryNGOBrainAI(query: string): Promise<string> {
-  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+  if (!(await isGeminiAvailable())) {
     return queryNGOBrainLocal(query);
   }
   try {
@@ -665,7 +672,7 @@ WAYS TO HELP (all available inside this chat)
 }
 
 export async function chatWithAI(userMessage: string, context: string, language: string = "English"): Promise<string> {
-  if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
+  if (!(await isGeminiAvailable())) {
     return chatLocalFallback(userMessage, language);
   }
   try {
@@ -696,20 +703,21 @@ CRITICAL: You MUST respond in ${language}.`;
   }
 }
 
-export async function testGeminiConnection(key: string): Promise<boolean> {
+/**
+ * Verifies real AI is reachable by doing a live round-trip through the proxy.
+ * The key argument is ignored (the key now lives server-side) but kept for a
+ * stable signature. Also refreshes the cached availability flag.
+ */
+export async function testGeminiConnection(_key?: string): Promise<boolean> {
   try {
-    const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${encodeURIComponent(key)}`,
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          contents: [{ parts: [{ text: "Say hello in one word." }] }],
-          generationConfig: { maxOutputTokens: 10 },
-        }),
-      },
-    );
-    return res.ok;
+    const res = await fetch(GEMINI_PROXY_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "Say hello in one word." }),
+    });
+    const ok = res.ok;
+    _geminiAvailable = ok || _geminiAvailable;
+    return ok;
   } catch {
     return false;
   }
