@@ -87,6 +87,20 @@ async function sbSet(value: unknown): Promise<boolean> {
 }
 
 export default async function handler(req: any, res: any): Promise<void> {
+  // ── Diagnostic capability check (no secrets leaked, booleans only) ──
+  // GET /api/counseling?check=1 -> which env vars the server can see.
+  const wantsCheck =
+    (req.query?.check ?? "") === "1" || String(req.url ?? "").includes("check=1");
+  if (req.method === "GET" && wantsCheck) {
+    res.setHeader("Cache-Control", "no-store");
+    res.status(200).json({
+      supabaseUrlSet: Boolean(SUPABASE_URL),
+      supabaseKeySet: Boolean(SERVICE_KEY),
+      adminPasswordSet: Boolean(process.env.ADMIN_PANEL_PASSWORD),
+    });
+    return;
+  }
+
   // ── Public read ──
   if (req.method === "GET") {
     const stored = await sbGet();
