@@ -270,6 +270,10 @@ const INITIAL_EVENTS: EventAttendance[] = [
 
 const STORAGE_KEY = "listeninn-db";
 
+// Build-time Gemini key (set VITE_GEMINI_API_KEY in .env.local / deploy env).
+// When present, real AI is enabled automatically without touching the admin panel.
+const ENV_GEMINI_KEY = (import.meta.env.VITE_GEMINI_API_KEY ?? "").trim();
+
 function loadState(): AppState {
   const defaults = getDefaultState();
   try {
@@ -278,7 +282,15 @@ function loadState(): AppState {
       const parsed = JSON.parse(raw) as Partial<AppState>;
       // Shape validation — ensure it's a non-array object
       if (typeof parsed !== "object" || Array.isArray(parsed)) return defaults;
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+      // Deep-merge settings so a stale localStorage blob can't wipe out newer defaults.
+      merged.settings = { ...defaults.settings, ...(parsed.settings ?? {}) };
+      // A build-time env key wins over an empty stored key and auto-enables real AI.
+      if (!merged.settings.geminiApiKey && ENV_GEMINI_KEY) {
+        merged.settings.geminiApiKey = ENV_GEMINI_KEY;
+        merged.settings.useGemini = true;
+      }
+      return merged;
     }
   } catch { /* ignore */ }
   return defaults;
@@ -292,7 +304,7 @@ function getDefaultState(): AppState {
     reminders: INITIAL_REMINDERS,
     donations: INITIAL_DONATIONS,
     feedbacks: INITIAL_FEEDBACKS,
-    settings: { geminiApiKey: "", useGemini: false },
+    settings: { geminiApiKey: ENV_GEMINI_KEY, useGemini: ENV_GEMINI_KEY.length > 0 },
     callSessions: INITIAL_CALLS,
     surveys: INITIAL_SURVEYS,
     events: INITIAL_EVENTS,
@@ -626,20 +638,60 @@ Admin Query: "${String(query).slice(0, 500)}"`;
   }
 }
 
+/**
+ * Grounding facts about ListenInn Foundation, assembled from the site's own
+ * content so the AI answers from a single source of truth. Keep this in sync
+ * with PROGRAMS_INFO and the contact/helpline details shown across the site.
+ */
+function buildKnowledgeBase(): string {
+  const programs = PROGRAMS_INFO.map((p) => `- ${p.title}: ${p.desc}`).join("\n");
+  return `ABOUT LISTENINN FOUNDATION
+ListenInn Foundation is a non-profit (NGO) dedicated to free, confidential mental health support. Every service is 100% free — funded by donations — and available regardless of a person's background, income, or circumstance. Our belief: healing starts with being heard.
+
+PROGRAMS & SERVICES
+${programs}
+
+KEY FACTS
+- Helpline: 1-800-LISTEN-IN, available 24/7 (trained listeners always on call).
+- Chat support hours: Mon–Sun, 8am–11pm.
+- All conversations are confidential; users may remain anonymous.
+- Counseling is delivered by licensed therapists (in-person or virtual), free of charge.
+- Volunteers complete a 40-hour training program (active listening, empathy techniques, crisis protocols, self-care) and are mentored by experienced listeners.
+- Contact: email listeninnfoundation@gmail.com (replies within 24 hours), the 1-800-LISTEN-IN helpline, or the website Contact page.
+
+WAYS TO HELP (all available inside this chat)
+- Register as a Volunteer.
+- Make a Donation — e.g. ₹500 funds one free counseling session, ₹2,000 keeps the helpline running for a full day, ₹10,000 funds 10 sessions.
+- Give Feedback about your experience.`;
+}
+
 export async function chatWithAI(userMessage: string, context: string, language: string = "English"): Promise<string> {
   if (!_state.settings.useGemini || !_state.settings.geminiApiKey) {
     return chatLocalFallback(userMessage, language);
   }
   try {
-    const prompt = `You are the friendly AI assistant for ListenInn Foundation, an NGO that provides free, confidential mental health support including a 24/7 helpline, 1:1 counseling, support groups, listening sessions, youth wellbeing programs, and crisis care. You are warm, compassionate, and helpful.
+    const prompt = `You are the official AI assistant for ListenInn Foundation, an NGO providing free, confidential mental health support. You are warm, compassionate, and concise.
 
-Context of conversation so far: ${context}
+SCOPE — READ CAREFULLY:
+- You ONLY discuss ListenInn Foundation: its mission, programs/services, helpline, volunteering, donations, feedback, contact details, and general mental-health encouragement in the context of ListenInn's support.
+- If the user asks about anything unrelated (general knowledge, trivia, coding, homework, news, math, other organisations, etc.), do NOT answer it. Politely decline in ONE sentence and steer them back — e.g. "I'm ListenInn's assistant, so I can only help with our foundation and mental-health support — is there something about that I can help with?"
+- Never invent facts, phone numbers, prices, statistics, staff names, or policies. If something isn't in the knowledge base below, say you don't have that detail and point them to the helpline (1-800-LISTEN-IN) or listeninnfoundation@gmail.com.
+- Do NOT provide medical diagnoses or medical advice. If the user seems in distress or at risk, gently and immediately guide them to the 24/7 helpline (1-800-LISTEN-IN).
+
+KNOWLEDGE BASE (your only source of truth):
+${buildKnowledgeBase()}
+
+Conversation so far:
+${context}
 
 User says: "${userMessage}"
 
-Reply in a warm, concise manner (2-4 sentences max). If the user is in distress, gently guide them to the helpline (1-800-LISTEN-IN). Do not provide medical advice.
+Reply warmly in 2-4 sentences max. Use only facts from the knowledge base.
 CRITICAL: You MUST respond in ${language}.`;
-    return await callGemini(prompt);
+    const reply = (await callGemini(prompt)).trim();
+    // Gemini can return an empty string when content is blocked or no candidate
+    // is produced — fall back so the user never sees a blank bubble.
+    return reply || chatLocalFallback(userMessage, language);
   } catch {
     return chatLocalFallback(userMessage, language);
   }
