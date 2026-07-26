@@ -104,12 +104,33 @@ export default async function handler(req: any, res: any): Promise<void> {
     const relatedNames = Object.keys(process.env)
       .filter((k) => /SUPABASE|KV_|ADMIN|SERVICE_ROLE|UPSTASH/i.test(k))
       .sort();
+
+    // Probe the table directly (read-only) and surface Supabase's real status,
+    // so a missing table / bad key shows up as a concrete error, not a blank 502.
+    let tableProbe: any = "skipped (url or key missing)";
+    if (configured()) {
+      try {
+        const probe = await fetch(
+          `${SUPABASE_URL}/rest/v1/${TABLE}?select=key&limit=1`,
+          { headers: sbHeaders() },
+        );
+        tableProbe = {
+          status: probe.status,
+          ok: probe.ok,
+          detail: probe.ok ? "" : (await probe.text()).slice(0, 300),
+        };
+      } catch (e: any) {
+        tableProbe = { error: String(e?.message ?? e).slice(0, 200) };
+      }
+    }
+
     res.status(200).json({
       supabaseUrlSet: Boolean(SUPABASE_URL),
       supabaseKeySet: Boolean(SERVICE_KEY),
       supabaseKeyLength: SERVICE_KEY.length,
       adminPasswordSet: Boolean(process.env.ADMIN_PANEL_PASSWORD),
       relatedEnvNames: relatedNames,
+      tableProbe,
     });
     return;
   }
