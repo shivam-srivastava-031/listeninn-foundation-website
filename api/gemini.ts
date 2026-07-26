@@ -3,7 +3,7 @@
 // Keeps the Gemini API key server-side. The browser calls /api/gemini (same
 // origin) and never sees the key. Configure with a NON-public env var in Vercel:
 //   GEMINI_API_KEY   (required)  — your Gemini API key
-//   GEMINI_MODEL     (optional)  — defaults to "gemini-2.0-flash"
+//   GEMINI_MODEL     (optional)  — defaults to "gemini-flash-latest"
 //
 //   GET  /api/gemini          -> { enabled: boolean }   (capability check, no secret)
 //   POST /api/gemini {prompt}  -> { text: string }        (generate content)
@@ -16,7 +16,7 @@ const MAX_PROMPT_CHARS = 8000;
 // Loosely typed to avoid a build-time dependency on @vercel/node types.
 export default async function handler(req: any, res: any): Promise<void> {
   const key = process.env.GEMINI_API_KEY;
-  const model = process.env.GEMINI_MODEL || "gemini-2.0-flash";
+  const model = process.env.GEMINI_MODEL || "gemini-flash-latest";
 
   // Capability check — lets the client know if real AI is available, no secret leaked.
   if (req.method === "GET") {
@@ -42,13 +42,8 @@ export default async function handler(req: any, res: any): Promise<void> {
       return;
     }
 
-    // TEMP: allow a per-request model override so we can probe which model has
-    // quota. Whitelisted to known Gemini model names. Remove after testing.
-    const reqModel = String(body?.model ?? "");
-    const useModel = /^gemini-[a-z0-9.\-]+$/i.test(reqModel) ? reqModel : model;
-
     const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${useModel}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
