@@ -1,7 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logo from "@/assets/listeninn-logo.png";
 import welcomeArt from "@/assets/listeninn-welcome.jpeg";
-import communityCareArt from "@/assets/artwork/community-care.jpeg";
+import { COMMUNITY_CARE_IMG } from "@/lib/artworkUrls";
 import { PageShell, WaveTop } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { SERVICES } from "@/lib/services";
@@ -527,8 +527,9 @@ function CommunityCareBand() {
         <div className="grid md:grid-cols-2 gap-10 items-center">
           <div className="flex justify-center">
             <img
-              src={communityCareArt}
+              src={COMMUNITY_CARE_IMG}
               alt="Hand-drawn illustration of three people holding hands beneath a banner reading 'Community care for all who need it'"
+              loading="lazy"
               className="w-full max-w-md h-auto rounded-2xl"
             />
           </div>

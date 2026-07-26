@@ -3,7 +3,7 @@ import { PageShell } from "@/components/layout";
 import { Ear, Heart, Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import balanceArt from "@/assets/artwork/balance-in-bloom.jpeg";
+import { BALANCE_IN_BLOOM_IMG } from "@/lib/artworkUrls";
 
 export const Route = createFileRoute("/values")({
   head: () => ({
@@ -60,8 +60,9 @@ function ValuesPage() {
           </p>
           <div className="flex justify-center pt-4">
             <img
-              src={balanceArt}
+              src={BALANCE_IN_BLOOM_IMG}
               alt="Hand-drawn illustration of a vine-wrapped balance scale, symbolising fairness and care held in equilibrium"
+              loading="lazy"
               className="w-full max-w-sm h-auto rounded-2xl"
             />
           </div>

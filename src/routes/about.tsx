@@ -4,7 +4,7 @@ import { Heart, Ear, Shield, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
 import { LeafyVine } from "@/components/artwork";
-import readingCircleArt from "@/assets/artwork/reading-circle.jpeg";
+import { READING_CIRCLE_IMG } from "@/lib/artworkUrls";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -74,8 +74,9 @@ function AboutPage() {
             </h2>
             <div className="flex justify-center pt-2">
               <img
-                src={readingCircleArt}
+                src={READING_CIRCLE_IMG}
                 alt="Soft watercolour illustration of people reading together in a circle"
+                loading="lazy"
                 className="w-full max-w-lg h-auto rounded-2xl"
               />
             </div>
