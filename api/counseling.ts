@@ -92,49 +92,6 @@ async function sbSet(value: unknown): Promise<boolean> {
 }
 
 export default async function handler(req: any, res: any): Promise<void> {
-  // ── Diagnostic capability check (no secrets leaked, booleans only) ──
-  // GET /api/counseling?check=1 -> which env vars the server can see.
-  const wantsCheck =
-    (req.query?.check ?? "") === "1" || String(req.url ?? "").includes("check=1");
-  if (req.method === "GET" && wantsCheck) {
-    res.setHeader("Cache-Control", "no-store");
-    // Report NAMES only (never values) of any SUPABASE_* / KV_* / ADMIN_* vars
-    // the server can see, plus the length of the resolved key, to diagnose
-    // naming/scoping issues without leaking secrets.
-    const relatedNames = Object.keys(process.env)
-      .filter((k) => /SUPABASE|KV_|ADMIN|SERVICE_ROLE|UPSTASH/i.test(k))
-      .sort();
-
-    // Probe the table directly (read-only) and surface Supabase's real status,
-    // so a missing table / bad key shows up as a concrete error, not a blank 502.
-    let tableProbe: any = "skipped (url or key missing)";
-    if (configured()) {
-      try {
-        const probe = await fetch(
-          `${SUPABASE_URL}/rest/v1/${TABLE}?select=key&limit=1`,
-          { headers: sbHeaders() },
-        );
-        tableProbe = {
-          status: probe.status,
-          ok: probe.ok,
-          detail: probe.ok ? "" : (await probe.text()).slice(0, 300),
-        };
-      } catch (e: any) {
-        tableProbe = { error: String(e?.message ?? e).slice(0, 200) };
-      }
-    }
-
-    res.status(200).json({
-      supabaseUrlSet: Boolean(SUPABASE_URL),
-      supabaseKeySet: Boolean(SERVICE_KEY),
-      supabaseKeyLength: SERVICE_KEY.length,
-      adminPasswordSet: Boolean(process.env.ADMIN_PANEL_PASSWORD),
-      relatedEnvNames: relatedNames,
-      tableProbe,
-    });
-    return;
-  }
-
   // ── Public read ──
   if (req.method === "GET") {
     const stored = await sbGet();
