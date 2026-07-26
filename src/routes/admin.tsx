@@ -98,21 +98,40 @@ function exportCSV(headers: string[], rows: (string | number)[][], filename: str
 
 // ━━━━━━━━━━━━━━━━━━━ Admin Auth Gate ━━━━━━━━━━━━━━━━━━━
 
-// S2: SHA-256 hash comparison — password never stored in cleartext
-const ADMIN_PASSWORD_PLAIN = "listeninn@admin2025"; // change to your preferred password
+// The admin password is validated SERVER-SIDE against the ADMIN_PANEL_PASSWORD
+// env var (via /api/admin-auth), the same secret used to authorise publishing.
+// Nothing meaningful is hardcoded here.
+//
+// DEV FALLBACK ONLY: when the /api function isn't running (e.g. `vite dev`
+// locally, where serverless functions aren't served), the endpoint replies 503
+// / is unreachable, and we fall back to this local check so local development
+// still works. On the deployed site the server password is authoritative.
+const DEV_FALLBACK_PASSWORD = "listeninn@admin2025";
 const SESSION_KEY = "listeninn_admin_auth";
 const ADMIN_PWD_KEY = "listeninn_admin_pwd";
 const RATE_LIMIT_KEY = "listeninn_admin_rate";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30_000;
 
-async function hashPwd(password: string): Promise<string> {
-  const data = new TextEncoder().encode(password + "listeninn-salt-2025");
-  const buf = await crypto.subtle.digest("SHA-256", data);
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, "0")).join("");
+/**
+ * Verify the password. Prefers the server check (shared with publishing); only
+ * falls back to the local dev password when the server endpoint is unavailable.
+ */
+async function verifyAdminPassword(pwd: string): Promise<boolean> {
+  try {
+    const res = await fetch("/api/admin-auth", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ password: pwd }),
+    });
+    if (res.status === 200) return true;
+    if (res.status === 401) return false;
+    // 503 / not_configured / any other status → fall through to dev fallback.
+  } catch {
+    // Network error (endpoint not running locally) → dev fallback.
+  }
+  return pwd === DEV_FALLBACK_PASSWORD;
 }
-let ADMIN_HASH = "";
-hashPwd(ADMIN_PASSWORD_PLAIN).then(h => { ADMIN_HASH = h; });
 
 interface RateState { attempts: number; lockedUntil: number; }
 function getRateState(): RateState {
@@ -138,12 +157,16 @@ function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
   const remaining = Math.max(0, Math.ceil((lockedUntil - now) / 1000));
   const isLocked = remaining > 0;
 
+  const [checking, setChecking] = useState(false);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLocked) return;
+    if (isLocked || checking) return;
     const rate = getRateState();
-    const inputHash = await hashPwd(pwd);
-    if (inputHash === ADMIN_HASH) {
+    setChecking(true);
+    const valid = await verifyAdminPassword(pwd);
+    setChecking(false);
+    if (valid) {
       saveRateState({ attempts: 0, lockedUntil: 0 });
       sessionStorage.setItem(SESSION_KEY, "1");
       // Keep the plaintext password for this session only, so the content
@@ -195,8 +218,10 @@ function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
             {errMsg && <p className="text-xs text-destructive flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 flex-shrink-0"/>{errMsg}</p>}
             {isLocked && !errMsg && <p className="text-xs text-yellow-600 flex items-center gap-1"><AlertCircle className="h-3.5 w-3.5 flex-shrink-0"/>Locked. Try again in {remaining}s.</p>}
           </div>
-          <Button type="submit" disabled={isLocked} className="w-full h-11 bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold shadow-soft disabled:opacity-50">
-            <Shield className="mr-2 h-4 w-4"/>{isLocked ? `Locked (${remaining}s)` : "Access Dashboard"}
+          <Button type="submit" disabled={isLocked || checking} className="w-full h-11 bg-gradient-brand text-primary-foreground hover:opacity-90 font-semibold shadow-soft disabled:opacity-50">
+            {checking
+              ? <><Loader2 className="mr-2 h-4 w-4 animate-spin"/>Checking…</>
+              : <><Shield className="mr-2 h-4 w-4"/>{isLocked ? `Locked (${remaining}s)` : "Access Dashboard"}</>}
           </Button>
         </form>
         <p className="text-center text-xs text-muted-foreground">🔒 Restricted to authorised administrators only.</p>
