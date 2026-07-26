@@ -1,10 +1,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Counseling content — editable by admins, shown to all visitors.
 //
-// The content is stored server-side (a hosted key-value store, read/written via
-// /api/counseling) so that edits made in the admin panel are visible to EVERY
-// visitor, not just the browser that made them. If the store isn't configured
-// yet, the API returns these defaults, so the page always renders.
+// The content is stored server-side (Supabase, read/written via /api/counseling)
+// so that edits made in the admin panel are visible to EVERY visitor, not just
+// the browser that made them. If the store isn't configured yet, the API returns
+// these defaults, so the page always renders.
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** One therapist's public profile. */
@@ -85,7 +85,7 @@ export async function saveCounselingContent(
       return {
         ok: false,
         error:
-          "Cloud storage isn't configured yet. Add the KV environment variables in Vercel (see setup notes), then redeploy.",
+          "Cloud storage isn't configured yet. Add the Supabase environment variables in Vercel (see setup notes), then redeploy.",
       };
     const detail = await res.text();
     return { ok: false, error: `Save failed (${res.status}). ${detail.slice(0, 140)}` };

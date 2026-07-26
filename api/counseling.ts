@@ -1,27 +1,36 @@
 // ─────────────────────────────────────────────────────────────────────────────
-// Vercel Serverless Function — Counseling content store
+// Vercel Serverless Function — Counseling content store (Supabase-backed)
 //
 // Lets admins edit the public "1:1 Counseling" details (therapists, credentials,
 // charges, sliding scale) from the admin panel, and serves that content to all
-// visitors. Backed by a hosted key-value store over its REST API, so there is no
-// npm dependency (same dependency-free style as api/gemini.ts).
+// visitors. Backed by Supabase over its REST (PostgREST) API — no npm dependency
+// (same dependency-free style as api/gemini.ts).
 //
-// Environment variables (set in Vercel → Settings → Environment Variables):
-//   KV_REST_API_URL         (required for saving) — REST URL of the KV store
-//   KV_REST_API_TOKEN       (required for saving) — REST token of the KV store
-//   ADMIN_PANEL_PASSWORD    (required for saving) — must match what the admin types
+// The Supabase service-role key stays SERVER-SIDE only (never shipped to the
+// browser), so writes are safe even with a single-row public table.
 //
-// Compatible with Vercel KV / Upstash Redis (both expose KV_REST_API_URL &
-// KV_REST_API_TOKEN). Also accepts UPSTASH_REDIS_REST_URL / _TOKEN as fallbacks.
+// Environment variables (Vercel → Settings → Environment Variables):
+//   SUPABASE_URL                  (required) — e.g. https://xxxx.supabase.co
+//   SUPABASE_SERVICE_ROLE_KEY     (required) — service_role key (SECRET, server-only)
+//   ADMIN_PANEL_PASSWORD          (required for saving) — must match admin login
+//
+// One-time table setup (run in Supabase → SQL editor):
+//   create table if not exists site_content (
+//     key   text primary key,
+//     value jsonb not null,
+//     updated_at timestamptz default now()
+//   );
+//   -- No RLS policy needed: only the server (service_role) touches this table.
 //
 //   GET  /api/counseling                     -> CounselingContent (public read)
 //   POST /api/counseling {password, content} -> { ok: true }       (admin write)
 // ─────────────────────────────────────────────────────────────────────────────
 
 const KEY = "counseling_content";
+const TABLE = "site_content";
 
-const KV_URL = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || "";
-const KV_TOKEN = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || "";
+const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
 
 const DEFAULT_CONTENT = {
   published: false,
@@ -33,32 +42,44 @@ const DEFAULT_CONTENT = {
     "Cost should never be the reason someone goes without support. When counseling launches, a sliding scale and a number of free places will be available — just ask.",
 };
 
-/** Read the stored value via the KV REST API. Returns null if unset/unavailable. */
-async function kvGet(): Promise<any | null> {
-  if (!KV_URL || !KV_TOKEN) return null;
+const configured = () => Boolean(SUPABASE_URL && SERVICE_KEY);
+
+const sbHeaders = () => ({
+  apikey: SERVICE_KEY,
+  Authorization: `Bearer ${SERVICE_KEY}`,
+  "Content-Type": "application/json",
+});
+
+/** Read the single content row from Supabase. Returns null if unset/unavailable. */
+async function sbGet(): Promise<any | null> {
+  if (!configured()) return null;
   try {
-    const res = await fetch(`${KV_URL}/get/${KEY}`, {
-      headers: { Authorization: `Bearer ${KV_TOKEN}` },
-    });
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${TABLE}?key=eq.${KEY}&select=value`,
+      { headers: sbHeaders() },
+    );
     if (!res.ok) return null;
-    const data: any = await res.json();
-    // Upstash returns { result: "<stringified JSON>" | null }
-    if (data?.result == null) return null;
-    return typeof data.result === "string" ? JSON.parse(data.result) : data.result;
+    const rows: any = await res.json();
+    if (Array.isArray(rows) && rows.length > 0) return rows[0]?.value ?? null;
+    return null;
   } catch {
     return null;
   }
 }
 
-/** Persist the value via the KV REST API. Returns true on success. */
-async function kvSet(value: unknown): Promise<boolean> {
-  if (!KV_URL || !KV_TOKEN) return false;
+/** Upsert the content row into Supabase. Returns true on success. */
+async function sbSet(value: unknown): Promise<boolean> {
+  if (!configured()) return false;
   try {
-    const res = await fetch(`${KV_URL}/set/${KEY}`, {
-      method: "POST",
-      headers: { Authorization: `Bearer ${KV_TOKEN}`, "Content-Type": "application/json" },
-      body: JSON.stringify(JSON.stringify(value)),
-    });
+    // on_conflict=key + merge-duplicates makes this an idempotent upsert.
+    const res = await fetch(
+      `${SUPABASE_URL}/rest/v1/${TABLE}?on_conflict=key`,
+      {
+        method: "POST",
+        headers: { ...sbHeaders(), Prefer: "resolution=merge-duplicates,return=minimal" },
+        body: JSON.stringify({ key: KEY, value, updated_at: new Date().toISOString() }),
+      },
+    );
     return res.ok;
   } catch {
     return false;
@@ -68,7 +89,7 @@ async function kvSet(value: unknown): Promise<boolean> {
 export default async function handler(req: any, res: any): Promise<void> {
   // ── Public read ──
   if (req.method === "GET") {
-    const stored = await kvGet();
+    const stored = await sbGet();
     res.setHeader("Cache-Control", "public, max-age=30, stale-while-revalidate=300");
     res.status(200).json(stored ?? DEFAULT_CONTENT);
     return;
@@ -91,8 +112,8 @@ export default async function handler(req: any, res: any): Promise<void> {
       return;
     }
 
-    if (!KV_URL || !KV_TOKEN) {
-      res.status(503).json({ error: "kv_not_configured" });
+    if (!configured()) {
+      res.status(503).json({ error: "supabase_not_configured" });
       return;
     }
 
@@ -102,9 +123,9 @@ export default async function handler(req: any, res: any): Promise<void> {
       return;
     }
 
-    const ok = await kvSet(content);
+    const ok = await sbSet(content);
     if (!ok) {
-      res.status(502).json({ error: "kv_write_failed" });
+      res.status(502).json({ error: "supabase_write_failed" });
       return;
     }
     res.status(200).json({ ok: true });
