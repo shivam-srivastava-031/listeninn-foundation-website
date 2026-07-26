@@ -42,8 +42,13 @@ export default async function handler(req: any, res: any): Promise<void> {
       return;
     }
 
+    // TEMP: allow a per-request model override so we can probe which model has
+    // quota. Whitelisted to known Gemini model names. Remove after testing.
+    const reqModel = String(body?.model ?? "");
+    const useModel = /^gemini-[a-z0-9.\-]+$/i.test(reqModel) ? reqModel : model;
+
     const upstream = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      `https://generativelanguage.googleapis.com/v1beta/models/${useModel}:generateContent`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": key },
