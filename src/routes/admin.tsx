@@ -19,6 +19,7 @@ import {
   Loader2, KeyRound, ToggleLeft, ToggleRight, RefreshCw, Trash2,
   TrendingUp, Target, Zap, Activity, Mic, Database, MessageCircle,
   FileSpreadsheet, Download, Globe, BarChart2, AlertCircle,
+  Edit3, Plus, X, Save,
 } from "lucide-react";
 import {
   type Volunteer, type AppState,
@@ -34,6 +35,10 @@ import {
   exportSubmissionsToExcel, exportSubmissionsToCSV, seedTestSubmission,
 } from "@/lib/connectStore";
 import { getTrafficStats, clearTrafficData } from "@/lib/trafficStore";
+import {
+  type CounselingContent, type Therapist, type FeeTier,
+  DEFAULT_COUNSELING, fetchCounselingContent, saveCounselingContent,
+} from "@/lib/counselingContent";
 
 export const Route = createFileRoute("/admin")({
   head: () => ({
@@ -55,7 +60,7 @@ function useDB(): AppState {
 
 // ━━━━━━━━━━━━━━━━━━━ Tab types ━━━━━━━━━━━━━━━━━━━
 
-type Tab = "screening" | "leads" | "matching" | "participation" | "impact" | "conversations" | "reminders" | "logs" | "brain" | "connect" | "settings";
+type Tab = "screening" | "leads" | "matching" | "participation" | "impact" | "conversations" | "reminders" | "logs" | "brain" | "connect" | "content" | "settings";
 
 const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "screening", label: "Screening", icon: Shield },
@@ -68,6 +73,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "logs", label: "Feedback", icon: MessageSquare },
   { key: "brain", label: "NGO Brain", icon: Database },
   { key: "connect", label: "Connect Forms", icon: Heart },
+  { key: "content", label: "Counseling Page", icon: Edit3 },
   { key: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -95,6 +101,7 @@ function exportCSV(headers: string[], rows: (string | number)[][], filename: str
 // S2: SHA-256 hash comparison — password never stored in cleartext
 const ADMIN_PASSWORD_PLAIN = "listeninn@admin2025"; // change to your preferred password
 const SESSION_KEY = "listeninn_admin_auth";
+const ADMIN_PWD_KEY = "listeninn_admin_pwd";
 const RATE_LIMIT_KEY = "listeninn_admin_rate";
 const MAX_ATTEMPTS = 5;
 const LOCKOUT_MS = 30_000;
@@ -139,6 +146,9 @@ function AdminLoginGate({ onUnlock }: { onUnlock: () => void }) {
     if (inputHash === ADMIN_HASH) {
       saveRateState({ attempts: 0, lockedUntil: 0 });
       sessionStorage.setItem(SESSION_KEY, "1");
+      // Keep the plaintext password for this session only, so the content
+      // editor can authenticate to /api/counseling. Cleared on lock.
+      sessionStorage.setItem(ADMIN_PWD_KEY, pwd);
       seedTestSubmission();
       onUnlock();
     } else {
@@ -202,7 +212,7 @@ function AdminPage() {
   const [unlocked, setUnlocked] = useState(() => sessionStorage.getItem(SESSION_KEY) === "1");
   if (!unlocked) return <AdminLoginGate onUnlock={() => setUnlocked(true)} />;
   // B7: lock via React state, NOT window.location.reload()
-  return <AdminDashboard onLock={() => { sessionStorage.removeItem(SESSION_KEY); setUnlocked(false); }} />;
+  return <AdminDashboard onLock={() => { sessionStorage.removeItem(SESSION_KEY); sessionStorage.removeItem(ADMIN_PWD_KEY); setUnlocked(false); }} />;
 }
 
 function AdminDashboard({ onLock }: { onLock: () => void }) {
@@ -314,6 +324,7 @@ function AdminDashboard({ onLock }: { onLock: () => void }) {
           {tab === "logs" && <LogsPanel db={db} />}
           {tab === "brain" && <NGOBrainPanel db={db} />}
           {tab === "connect" && <ConnectPanel />}
+          {tab === "content" && <ContentPanel />}
           {tab === "settings" && <SettingsPanel db={db} />}
         </div>
       </section>
@@ -1762,6 +1773,231 @@ function NGOBrainPanel({ db }: { db: AppState }) {
           </div>
         </div>
 
+      </div>
+    </div>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ CONTENT PANEL (Counseling page editor) ━━━━━━━━━━━━━━━━━━━
+
+function ContentPanel() {
+  const [content, setContent] = useState<CounselingContent>(DEFAULT_COUNSELING);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchCounselingContent().then((c) => { setContent(c); setLoading(false); });
+  }, []);
+
+  const update = <K extends keyof CounselingContent>(key: K, value: CounselingContent[K]) =>
+    setContent((c) => ({ ...c, [key]: value }));
+
+  // ── Therapist helpers ──
+  const addTherapist = () =>
+    update("therapists", [...content.therapists, { name: "", title: "", credentials: "", focus: "" }]);
+  const updateTherapist = (i: number, key: keyof Therapist, value: string) =>
+    update("therapists", content.therapists.map((t, idx) => (idx === i ? { ...t, [key]: value } : t)));
+  const removeTherapist = (i: number) =>
+    update("therapists", content.therapists.filter((_, idx) => idx !== i));
+
+  // ── Fee helpers ──
+  const addFee = () =>
+    update("fees", [...content.fees, { label: "", amount: "", note: "" }]);
+  const updateFee = (i: number, key: keyof FeeTier, value: string) =>
+    update("fees", content.fees.map((f, idx) => (idx === i ? { ...f, [key]: value } : f)));
+  const removeFee = (i: number) =>
+    update("fees", content.fees.filter((_, idx) => idx !== i));
+
+  const handleSave = async () => {
+    const password = sessionStorage.getItem(ADMIN_PWD_KEY) ?? "";
+    if (!password) { toast.error("Session expired — please lock and log in again."); return; }
+    setSaving(true);
+    const result = await saveCounselingContent(content, password);
+    setSaving(false);
+    if (result.ok) toast.success("Counseling page updated — visitors will see the changes. 💜");
+    else toast.error(result.error);
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 text-muted-foreground">
+        <Loader2 className="h-4 w-4 animate-spin" /> Loading current content…
+      </div>
+    );
+  }
+
+  const inputCls = "w-full rounded-lg border border-input bg-background px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-ring";
+
+  return (
+    <div className="max-w-3xl space-y-8">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Edit3 className="h-5 w-5 text-primary" /> Counseling Page Editor
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Edit the therapist credentials, charges, and sliding scale shown on the public 1:1
+            Counseling page. Changes are visible to all visitors after you save.
+          </p>
+        </div>
+        <a
+          href="/services/counseling"
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline whitespace-nowrap"
+        >
+          <Eye className="h-4 w-4" /> View live page
+        </a>
+      </div>
+
+      {/* Publish toggle */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-card flex items-center justify-between gap-4">
+        <div>
+          <div className="font-semibold text-sm">Publish these details</div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            When off, the page shows a "details coming soon" message instead of the therapists/fees.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => update("published", !content.published)}
+          className={`inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-medium transition-colors ${
+            content.published ? "bg-green-100 text-green-700" : "bg-muted text-muted-foreground"
+          }`}
+        >
+          {content.published ? <ToggleRight className="h-4 w-4" /> : <ToggleLeft className="h-4 w-4" />}
+          {content.published ? "Published" : "Hidden"}
+        </button>
+      </div>
+
+      {/* Intro */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-2">
+        <Label htmlFor="c-intro">Intro paragraph</Label>
+        <Textarea
+          id="c-intro"
+          value={content.intro}
+          onChange={(e) => update("intro", e.target.value)}
+          rows={3}
+          className="resize-none"
+          placeholder="A short sentence shown at the top of the counseling details."
+        />
+      </div>
+
+      {/* Therapists */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Therapists</h3>
+          <Button size="sm" variant="outline" onClick={addTherapist}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> Add therapist
+          </Button>
+        </div>
+        {content.therapists.length === 0 && (
+          <p className="text-sm text-muted-foreground">No therapists added yet.</p>
+        )}
+        {content.therapists.map((t, i) => (
+          <div key={i} className="rounded-xl border border-border bg-background p-4 space-y-3 relative">
+            <button
+              type="button"
+              onClick={() => removeTherapist(i)}
+              className="absolute right-3 top-3 text-muted-foreground hover:text-red-600"
+              title="Remove therapist"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Name</Label>
+                <input className={inputCls} value={t.name}
+                  onChange={(e) => updateTherapist(i, "name", e.target.value)}
+                  placeholder="Dr. Jane Doe" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Title / role</Label>
+                <input className={inputCls} value={t.title}
+                  onChange={(e) => updateTherapist(i, "title", e.target.value)}
+                  placeholder="Clinical Psychologist" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Qualifications &amp; registration</Label>
+              <input className={inputCls} value={t.credentials}
+                onChange={(e) => updateTherapist(i, "credentials", e.target.value)}
+                placeholder="M.Phil Clinical Psychology · RCI-registered (A-12345)" />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Areas of focus</Label>
+              <input className={inputCls} value={t.focus}
+                onChange={(e) => updateTherapist(i, "focus", e.target.value)}
+                placeholder="anxiety, grief, trauma, relationships" />
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Fees / sliding scale */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-semibold">Session charges / sliding-scale tiers</h3>
+          <Button size="sm" variant="outline" onClick={addFee}>
+            <Plus className="mr-1 h-3.5 w-3.5" /> Add tier
+          </Button>
+        </div>
+        {content.fees.length === 0 && (
+          <p className="text-sm text-muted-foreground">No fee tiers added yet.</p>
+        )}
+        {content.fees.map((f, i) => (
+          <div key={i} className="rounded-xl border border-border bg-background p-4 space-y-3 relative">
+            <button
+              type="button"
+              onClick={() => removeFee(i)}
+              className="absolute right-3 top-3 text-muted-foreground hover:text-red-600"
+              title="Remove tier"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="text-xs">Tier label</Label>
+                <input className={inputCls} value={f.label}
+                  onChange={(e) => updateFee(i, "label", e.target.value)}
+                  placeholder="Standard / Reduced / Supported" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="text-xs">Amount</Label>
+                <input className={inputCls} value={f.amount}
+                  onChange={(e) => updateFee(i, "amount", e.target.value)}
+                  placeholder="₹1,200 per 50-min session" />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Note (optional)</Label>
+              <input className={inputCls} value={f.note}
+                onChange={(e) => updateFee(i, "note", e.target.value)}
+                placeholder="for those who can pay the full rate" />
+            </div>
+          </div>
+        ))}
+        <div className="space-y-1.5 pt-2">
+          <Label htmlFor="c-sliding">Sliding-scale note</Label>
+          <Textarea
+            id="c-sliding"
+            value={content.slidingScaleNote}
+            onChange={(e) => update("slidingScaleNote", e.target.value)}
+            rows={2}
+            className="resize-none"
+            placeholder="How someone can request a reduced or free place."
+          />
+        </div>
+      </div>
+
+      {/* Save */}
+      <div className="flex items-center gap-3">
+        <Button onClick={handleSave} disabled={saving} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+          {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Save className="mr-2 h-4 w-4" /> Save &amp; publish</>}
+        </Button>
+        <p className="text-xs text-muted-foreground">
+          Saves to cloud storage so every visitor sees the update.
+        </p>
       </div>
     </div>
   );
