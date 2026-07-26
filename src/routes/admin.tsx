@@ -19,7 +19,7 @@ import {
   Loader2, KeyRound, ToggleLeft, ToggleRight, RefreshCw, Trash2,
   TrendingUp, Target, Zap, Activity, Mic, Database, MessageCircle,
   FileSpreadsheet, Download, Globe, BarChart2, AlertCircle,
-  Edit3, Plus, X, Save,
+  Edit3, Plus, X, Save, EyeOff,
 } from "lucide-react";
 import {
   type Volunteer, type AppState,
@@ -1784,6 +1784,11 @@ function ContentPanel() {
   const [content, setContent] = useState<CounselingContent>(DEFAULT_COUNSELING);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  // Dedicated publishing password. Prefilled from the login password so it works
+  // out of the box when they match, but editable — this is the value sent to the
+  // server and compared against ADMIN_PANEL_PASSWORD.
+  const [pubPwd, setPubPwd] = useState<string>(() => sessionStorage.getItem(ADMIN_PWD_KEY) ?? "");
+  const [showPwd, setShowPwd] = useState(false);
 
   useEffect(() => {
     fetchCounselingContent().then((c) => { setContent(c); setLoading(false); });
@@ -1809,8 +1814,8 @@ function ContentPanel() {
     update("fees", content.fees.filter((_, idx) => idx !== i));
 
   const handleSave = async () => {
-    const password = sessionStorage.getItem(ADMIN_PWD_KEY) ?? "";
-    if (!password) { toast.error("Session expired — please lock and log in again."); return; }
+    const password = pubPwd.trim();
+    if (!password) { toast.error("Enter the publishing password below."); return; }
     setSaving(true);
     const result = await saveCounselingContent(content, password);
     setSaving(false);
@@ -1990,14 +1995,43 @@ function ContentPanel() {
         </div>
       </div>
 
-      {/* Save */}
-      <div className="flex items-center gap-3">
-        <Button onClick={handleSave} disabled={saving} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
-          {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Save className="mr-2 h-4 w-4" /> Save &amp; publish</>}
-        </Button>
-        <p className="text-xs text-muted-foreground">
-          Saves to cloud storage so every visitor sees the update.
-        </p>
+      {/* Save & publish */}
+      <div className="rounded-2xl border border-border bg-card p-5 shadow-card space-y-4">
+        <div className="space-y-1.5 max-w-sm">
+          <Label htmlFor="c-pub-pwd">Publishing password</Label>
+          <div className="relative">
+            <input
+              id="c-pub-pwd"
+              type={showPwd ? "text" : "password"}
+              value={pubPwd}
+              onChange={(e) => setPubPwd(e.target.value)}
+              autoComplete="off"
+              placeholder="Password required to publish"
+              className={`${inputCls} pr-10`}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPwd((s) => !s)}
+              tabIndex={-1}
+              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              aria-label="Toggle password visibility"
+            >
+              {showPwd ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Must match the <code className="text-[11px] bg-muted px-1 py-0.5 rounded">ADMIN_PANEL_PASSWORD</code>
+            {" "}set on the server. Prefilled from your login — change it here if publishing is rejected.
+          </p>
+        </div>
+        <div className="flex items-center gap-3">
+          <Button onClick={handleSave} disabled={saving || !pubPwd.trim()} className="bg-gradient-brand text-primary-foreground hover:opacity-90">
+            {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving…</> : <><Save className="mr-2 h-4 w-4" /> Save &amp; publish</>}
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Saves to cloud storage so every visitor sees the update.
+          </p>
+        </div>
       </div>
     </div>
   );
