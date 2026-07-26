@@ -30,7 +30,12 @@ const KEY = "counseling_content";
 const TABLE = "site_content";
 
 const SUPABASE_URL = (process.env.SUPABASE_URL || "").replace(/\/$/, "");
-const SERVICE_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || "";
+// Accept the canonical name, plus a couple of common alternates admins may use.
+const SERVICE_KEY =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  process.env.SERVICE_ROLE_KEY ||
+  process.env.SUPABASE_KEY ||
+  "";
 
 const DEFAULT_CONTENT = {
   published: false,
