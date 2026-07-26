@@ -86,7 +86,7 @@ const SECTION_STEPS = [
     label: "ABOUT YOU",
     desc: "Help us know you better.",
     icon: User,
-    color: "from-purple-500 to-indigo-500",
+    color: "from-purple-500 to-violet-500",
   },
   {
     number: "02",
@@ -114,7 +114,7 @@ const SECTION_STEPS = [
     label: "LET'S STAY CONNECTED",
     desc: "Help us reach you in the best way possible.",
     icon: Phone,
-    color: "from-blue-500 to-cyan-400",
+    color: "from-teal-500 to-emerald-400",
   },
   {
     number: "06",
@@ -291,15 +291,15 @@ function ConnectPage() {
                 <rect x="152" y="75" width="9" height="28" rx="4.5" fill="url(#handGrad2)" transform="rotate(15 156 89)" />
                 {/* Leaves / accents */}
                 <ellipse cx="30" cy="50" rx="8" ry="20" fill="#a78bfa" opacity="0.4" transform="rotate(-30 30 50)" />
-                <ellipse cx="170" cy="45" rx="8" ry="20" fill="#34d399" opacity="0.35" transform="rotate(30 170 45)" />
+                <ellipse cx="170" cy="45" rx="8" ry="20" fill="#5ec5bd" opacity="0.4" transform="rotate(30 170 45)" />
                 <defs>
                   <linearGradient id="handGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#7c3aed" />
-                    <stop offset="100%" stopColor="#4f46e5" />
+                    <stop offset="0%" stopColor="#6b5b95" />
+                    <stop offset="100%" stopColor="#1fa39b" />
                   </linearGradient>
                   <linearGradient id="handGrad2" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#0891b2" />
-                    <stop offset="100%" stopColor="#6366f1" />
+                    <stop offset="0%" stopColor="#1fa39b" />
+                    <stop offset="100%" stopColor="#6b5b95" />
                   </linearGradient>
                 </defs>
               </svg>
@@ -684,7 +684,7 @@ function ConnectPage() {
         ═══════════════════════════════════════ */
         .connect-hero {
           position: relative;
-          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #e0f2fe 100%);
+          background: linear-gradient(135deg, #f5f3ff 0%, #ede9fe 40%, #e6f6f4 100%);
           padding: 64px 24px 80px;
           overflow: hidden;
         }
@@ -736,12 +736,12 @@ function ConnectPage() {
           font-weight: 800;
           font-size: 14px;
           letter-spacing: 0.15em;
-          color: #4f46e5;
+          color: #1fa39b;
         }
         .connect-hero-brand-sub {
           font-size: 10px;
           letter-spacing: 0.25em;
-          color: #7c3aed;
+          color: #6b5b95;
         }
         .connect-hero-brand-tagline {
           font-size: 9px;
@@ -751,15 +751,15 @@ function ConnectPage() {
         .connect-hero-title {
           font-size: clamp(28px, 5vw, 44px);
           font-weight: 800;
-          color: #1e1b4b;
+          color: #2b2440;
           line-height: 1.15;
           margin: 0 0 12px;
         }
-        .connect-hero-title-accent { color: #7c3aed; }
+        .connect-hero-title-accent { color: #6b5b95; }
         .connect-hero-subtitle {
           font-size: 15px;
           font-weight: 600;
-          color: #4f46e5;
+          color: #1fa39b;
           margin-bottom: 12px;
         }
         .connect-hero-body {
@@ -773,8 +773,8 @@ function ConnectPage() {
           display: flex;
           align-items: flex-start;
           gap: 10px;
-          background: rgba(124,58,237,0.06);
-          border: 1px solid rgba(124,58,237,0.15);
+          background: rgba(107,91,149,0.06);
+          border: 1px solid rgba(107,91,149,0.15);
           border-radius: 12px;
           padding: 12px 16px;
           font-size: 13px;
@@ -784,7 +784,7 @@ function ConnectPage() {
         .connect-hero-notice-icon {
           flex-shrink: 0;
           width: 30px; height: 30px;
-          background: linear-gradient(135deg, #7c3aed, #4f46e5);
+          background: linear-gradient(135deg, #6b5b95, #1fa39b);
           border-radius: 8px;
           display: flex; align-items: center; justify-content: center;
           color: white;
@@ -806,12 +806,12 @@ function ConnectPage() {
           animation: float 4s ease-in-out infinite;
         }
         .connect-hero-bubble-left {
-          background: linear-gradient(135deg, #7c3aed, #4f46e5);
+          background: linear-gradient(135deg, #6b5b95, #1fa39b);
           align-self: flex-start;
           animation-delay: 0s;
         }
         .connect-hero-bubble-right {
-          background: linear-gradient(135deg, #06b6d4, #0891b2);
+          background: linear-gradient(135deg, #1fa39b, #178f88);
           align-self: flex-end;
           animation-delay: 1.5s;
         }
@@ -842,14 +842,14 @@ function ConnectPage() {
           background: white;
           border-radius: 20px;
           border: 1px solid #ede9fe;
-          box-shadow: 0 4px 24px rgba(124,58,237,0.06);
+          box-shadow: 0 4px 24px rgba(107,91,149,0.06);
           display: flex;
           gap: 0;
           overflow: hidden;
           transition: box-shadow 0.25s;
         }
         .connect-section-card:hover {
-          box-shadow: 0 8px 40px rgba(124,58,237,0.11);
+          box-shadow: 0 8px 40px rgba(107,91,149,0.11);
         }
 
         /* Sidebar */
@@ -868,7 +868,7 @@ function ConnectPage() {
           width: 48px; height: 48px;
           border-radius: 14px;
           display: flex; align-items: center; justify-content: center;
-          box-shadow: 0 4px 16px rgba(124,58,237,0.2);
+          box-shadow: 0 4px 16px rgba(107,91,149,0.2);
         }
         .connect-sidebar-text {
           display: flex;
@@ -884,7 +884,7 @@ function ConnectPage() {
         .connect-sidebar-label {
           font-size: 11px;
           font-weight: 700;
-          color: #7c3aed;
+          color: #6b5b95;
           letter-spacing: 0.06em;
           line-height: 1.3;
         }
@@ -912,9 +912,9 @@ function ConnectPage() {
         .connect-label {
           font-size: 13px;
           font-weight: 600;
-          color: #1e1b4b;
+          color: #2b2440;
         }
-        .connect-required { color: #7c3aed; }
+        .connect-required { color: #6b5b95; }
         .connect-optional { font-size: 11px; color: #9ca3af; font-weight: 400; }
         .connect-label-hint { font-size: 11px; color: #6b7280; font-weight: 400; }
         .connect-field-hint {
@@ -948,8 +948,8 @@ function ConnectPage() {
         }
         .connect-input-has-icon { padding-left: 36px; }
         .connect-input:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+          border-color: #6b5b95;
+          box-shadow: 0 0 0 3px rgba(107,91,149,0.1);
           background: white;
         }
         .connect-input::placeholder { color: #d1d5db; }
@@ -971,8 +971,8 @@ function ConnectPage() {
           transition: border-color 0.2s, box-shadow 0.2s;
         }
         .connect-select:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+          border-color: #6b5b95;
+          box-shadow: 0 0 0 3px rgba(107,91,149,0.1);
           background: white;
         }
         .connect-select-icon {
@@ -1001,8 +1001,8 @@ function ConnectPage() {
           font-family: inherit;
         }
         .connect-textarea:focus {
-          border-color: #7c3aed;
-          box-shadow: 0 0 0 3px rgba(124,58,237,0.1);
+          border-color: #6b5b95;
+          box-shadow: 0 0 0 3px rgba(107,91,149,0.1);
           background: white;
         }
         .connect-textarea::placeholder { color: #d1d5db; }
@@ -1037,15 +1037,15 @@ function ConnectPage() {
         }
         .connect-chip:hover {
           border-color: #a78bfa;
-          color: #7c3aed;
+          color: #6b5b95;
           background: #faf5ff;
         }
         .connect-chip-active {
-          border-color: #7c3aed;
+          border-color: #6b5b95;
           background: #f5f3ff;
-          color: #7c3aed;
+          color: #6b5b95;
           font-weight: 600;
-          box-shadow: 0 2px 12px rgba(124,58,237,0.12);
+          box-shadow: 0 2px 12px rgba(107,91,149,0.12);
         }
         .connect-chip-icon {
           width: 14px; height: 14px;
@@ -1057,7 +1057,7 @@ function ConnectPage() {
           outline: none;
           background: transparent;
           font-size: 12px;
-          color: #7c3aed;
+          color: #6b5b95;
           width: 100px;
           padding: 0;
           margin-left: 4px;
@@ -1089,8 +1089,8 @@ function ConnectPage() {
           position: relative;
         }
         .connect-radio:checked + .connect-radio-custom {
-          border-color: #7c3aed;
-          background: #7c3aed;
+          border-color: #6b5b95;
+          background: #6b5b95;
           box-shadow: inset 0 0 0 3px white;
         }
 
@@ -1121,8 +1121,8 @@ function ConnectPage() {
           position: relative;
         }
         .connect-checkbox:checked + .connect-checkbox-custom {
-          background: linear-gradient(135deg, #7c3aed, #4f46e5);
-          border-color: #7c3aed;
+          background: linear-gradient(135deg, #6b5b95, #1fa39b);
+          border-color: #6b5b95;
         }
         .connect-checkbox:checked + .connect-checkbox-custom::after {
           content: '';
@@ -1137,14 +1137,14 @@ function ConnectPage() {
 
         /* ── Submit Banner ── */
         .connect-submit-banner {
-          background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+          background: linear-gradient(135deg, #3a3160 0%, #4a3f7a 50%, #1fa39b 100%);
           border-radius: 20px;
           padding: 36px 40px;
           display: flex;
           align-items: center;
           gap: 40px;
           flex-wrap: wrap;
-          box-shadow: 0 12px 48px rgba(67,56,202,0.3);
+          box-shadow: 0 12px 48px rgba(107,91,149,0.3);
         }
         .connect-submit-banner-left { flex: 1; min-width: 240px; }
         .connect-submit-banner-title {
@@ -1168,7 +1168,7 @@ function ConnectPage() {
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #7c3aed, #2563eb);
+          background: linear-gradient(135deg, #6b5b95, #1fa39b);
           color: white;
           font-weight: 700;
           font-size: 15px;
@@ -1177,12 +1177,12 @@ function ConnectPage() {
           border: none;
           cursor: pointer;
           transition: all 0.25s;
-          box-shadow: 0 6px 24px rgba(124,58,237,0.4);
+          box-shadow: 0 6px 24px rgba(107,91,149,0.4);
           white-space: nowrap;
         }
         .connect-submit-btn:hover:not(:disabled) {
           transform: translateY(-2px);
-          box-shadow: 0 10px 32px rgba(124,58,237,0.5);
+          box-shadow: 0 10px 32px rgba(107,91,149,0.5);
         }
         .connect-submit-btn:disabled { opacity: 0.7; cursor: not-allowed; }
         .connect-submit-btn-inner {
@@ -1226,7 +1226,7 @@ function ConnectPage() {
           max-width: 560px;
           width: 100%;
           text-align: center;
-          box-shadow: 0 20px 80px rgba(124,58,237,0.12);
+          box-shadow: 0 20px 80px rgba(107,91,149,0.12);
           animation: scaleIn 0.4s ease-out;
         }
         @keyframes scaleIn {
@@ -1245,13 +1245,13 @@ function ConnectPage() {
         .connect-success-title {
           font-size: 26px;
           font-weight: 800;
-          color: #1e1b4b;
+          color: #2b2440;
           margin: 0 0 8px;
         }
         .connect-success-tagline {
           font-size: 14px;
           font-weight: 600;
-          color: #7c3aed;
+          color: #6b5b95;
           margin-bottom: 16px;
         }
         .connect-success-body {

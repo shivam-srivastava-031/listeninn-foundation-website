@@ -27,11 +27,11 @@ export const Route = createFileRoute("/faq")({
 const FAQS = [
   {
     q: "Is ListenInn really free and confidential?",
-    a: "Yes. Our helpline and listening sessions are completely free, anonymous, and confidential. Counseling sessions are offered on a sliding scale, with fully free options for those who need them. We never share your information without your explicit consent.",
+    a: "Listening sessions are completely free, anonymous, and confidential. Our 1:1 counseling service is still being set up — when it launches, we'll publish the therapists' credentials, session charges, and sliding-scale brackets in full so everything is transparent. We never share your information without your explicit consent.",
   },
   {
-    q: "Who answers the helpline?",
-    a: "Trained volunteer listeners and on-call mental health professionals. Every person on our team is thoroughly vetted, background-checked, and supervised by our clinical team. You're always in safe hands.",
+    q: "How can I reach a listener right now?",
+    a: "We're setting up a dedicated helpline phone number, but it isn't live yet. In the meantime, the surest way to be heard is to share your story through our Connect form or email us at listeninnfoundation@gmail.com — a real member of our team will read it with care and respond. If you're in immediate danger, please contact your local emergency services first.",
   },
   {
     q: "I'm not in crisis — can I still reach out?",
@@ -43,7 +43,7 @@ const FAQS = [
   },
   {
     q: "What if I'm worried about someone else?",
-    a: "Call our helpline — we'll guide you through how to support them and connect them to care safely. You can also share our helpline number with them directly. Caring enough to ask is already a powerful step.",
+    a: "Reach out through our Connect form or email us — we'll guide you through how to support them and point you toward the right care. You can also share our Connect page with them directly. Caring enough to ask is already a powerful step.",
   },
   {
     q: "Where does my donation go?",
@@ -51,7 +51,7 @@ const FAQS = [
   },
   {
     q: "How quickly can I get help in a crisis?",
-    a: "Our helpline is available 24/7 with no wait time for crisis calls. If you're in immediate danger, please also call your local emergency number. We'll stay with you until you're connected to the right support.",
+    a: "Please note we are not an emergency service — if you're in immediate danger, call your local emergency number first. For non-emergency support, reach out through our Connect form or email and we'll respond as soon as we can and help connect you to the right support.",
   },
   {
     q: "Can I volunteer even without a psychology background?",

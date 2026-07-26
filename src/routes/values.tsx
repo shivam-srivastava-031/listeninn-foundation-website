@@ -3,6 +3,7 @@ import { PageShell } from "@/components/layout";
 import { Ear, Heart, Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { BalanceVineArt } from "@/components/artwork";
 
 export const Route = createFileRoute("/values")({
   head: () => ({
@@ -57,6 +58,9 @@ function ValuesPage() {
             These aren't just words on a wall — they shape every conversation, every decision, every
             interaction.
           </p>
+          <div className="text-primary flex justify-center pt-4">
+            <BalanceVineArt className="w-full max-w-xs h-auto" />
+          </div>
         </div>
       </section>
 

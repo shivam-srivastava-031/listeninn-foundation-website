@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Phone, Mail, MessageCircle, Send } from "lucide-react";
+import { Mail, MessageCircle, Send, Instagram } from "lucide-react";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -162,12 +162,6 @@ function ContactPage() {
             <div className="grid sm:grid-cols-1 gap-4">
               {[
                 {
-                  icon: Phone,
-                  title: "Helpline",
-                  value: "1-800-LISTEN-IN",
-                  sub: "Available 24 hours",
-                },
-                {
                   icon: Mail,
                   title: "Email",
                   value: "listeninnfoundation@gmail.com",
@@ -175,9 +169,15 @@ function ContactPage() {
                 },
                 {
                   icon: MessageCircle,
-                  title: "Chat",
-                  value: "Start a chat",
-                  sub: "Mon–Sun, 8am–11pm",
+                  title: "Share your story",
+                  value: "Connect form",
+                  sub: "The best way to reach us right now",
+                },
+                {
+                  icon: Instagram,
+                  title: "Instagram",
+                  value: "@listeninnfoundation",
+                  sub: "Send us a message",
                 },
               ].map((c) => (
                 <div

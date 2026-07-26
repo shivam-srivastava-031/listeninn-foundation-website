@@ -545,7 +545,7 @@ export function AiChatWidget() {
           {/* Footer */}
           <div className="px-4 py-2 bg-[oklch(0.975_0.012_300)] border-t border-[oklch(0.9_0.025_295)] text-center">
             <p className="text-[10px] text-[oklch(0.45_0.03_285)]">
-              Powered by ListenInn AI · Not a substitute for professional help · <span className="font-medium">Helpline: 1-800-LISTEN-IN</span>
+              Powered by ListenInn AI · Not a substitute for professional help · <span className="font-medium">listeninnfoundation@gmail.com</span>
             </p>
           </div>
         </div>

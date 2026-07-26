@@ -19,6 +19,7 @@ import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ServicesServiceIdRouteImport } from './routes/services.$serviceId'
 
 const ValuesRoute = ValuesRouteImport.update({
   id: '/values',
@@ -70,6 +71,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ServicesServiceIdRoute = ServicesServiceIdRouteImport.update({
+  id: '/$serviceId',
+  path: '/$serviceId',
+  getParentRoute: () => ServicesRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -80,8 +86,9 @@ export interface FileRoutesByFullPath {
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
   '/helpline': typeof HelplineRoute
-  '/services': typeof ServicesRoute
+  '/services': typeof ServicesRouteWithChildren
   '/values': typeof ValuesRoute
+  '/services/$serviceId': typeof ServicesServiceIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -92,8 +99,9 @@ export interface FileRoutesByTo {
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
   '/helpline': typeof HelplineRoute
-  '/services': typeof ServicesRoute
+  '/services': typeof ServicesRouteWithChildren
   '/values': typeof ValuesRoute
+  '/services/$serviceId': typeof ServicesServiceIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -105,8 +113,9 @@ export interface FileRoutesById {
   '/faq': typeof FaqRoute
   '/get-involved': typeof GetInvolvedRoute
   '/helpline': typeof HelplineRoute
-  '/services': typeof ServicesRoute
+  '/services': typeof ServicesRouteWithChildren
   '/values': typeof ValuesRoute
+  '/services/$serviceId': typeof ServicesServiceIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +130,7 @@ export interface FileRouteTypes {
     | '/helpline'
     | '/services'
     | '/values'
+    | '/services/$serviceId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +143,7 @@ export interface FileRouteTypes {
     | '/helpline'
     | '/services'
     | '/values'
+    | '/services/$serviceId'
   id:
     | '__root__'
     | '/'
@@ -145,6 +156,7 @@ export interface FileRouteTypes {
     | '/helpline'
     | '/services'
     | '/values'
+    | '/services/$serviceId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -156,7 +168,7 @@ export interface RootRouteChildren {
   FaqRoute: typeof FaqRoute
   GetInvolvedRoute: typeof GetInvolvedRoute
   HelplineRoute: typeof HelplineRoute
-  ServicesRoute: typeof ServicesRoute
+  ServicesRoute: typeof ServicesRouteWithChildren
   ValuesRoute: typeof ValuesRoute
 }
 
@@ -232,8 +244,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/services/$serviceId': {
+      id: '/services/$serviceId'
+      path: '/$serviceId'
+      fullPath: '/services/$serviceId'
+      preLoaderRoute: typeof ServicesServiceIdRouteImport
+      parentRoute: typeof ServicesRoute
+    }
   }
 }
+
+interface ServicesRouteChildren {
+  ServicesServiceIdRoute: typeof ServicesServiceIdRoute
+}
+
+const ServicesRouteChildren: ServicesRouteChildren = {
+  ServicesServiceIdRoute: ServicesServiceIdRoute,
+}
+
+const ServicesRouteWithChildren = ServicesRoute._addFileChildren(
+  ServicesRouteChildren,
+)
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
@@ -244,7 +275,7 @@ const rootRouteChildren: RootRouteChildren = {
   FaqRoute: FaqRoute,
   GetInvolvedRoute: GetInvolvedRoute,
   HelplineRoute: HelplineRoute,
-  ServicesRoute: ServicesRoute,
+  ServicesRoute: ServicesRouteWithChildren,
   ValuesRoute: ValuesRoute,
 }
 export const routeTree = rootRouteImport

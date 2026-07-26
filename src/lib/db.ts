@@ -652,12 +652,11 @@ PROGRAMS & SERVICES
 ${programs}
 
 KEY FACTS
-- Helpline: 1-800-LISTEN-IN, available 24/7 (trained listeners always on call).
-- Chat support hours: Mon–Sun, 8am–11pm.
+- The best way to reach us right now is the website's Connect form ("Share your story") or by email at listeninnfoundation@gmail.com (replies within 24 hours). A dedicated helpline phone number is being set up and is not live yet — do NOT give out any phone number.
 - All conversations are confidential; users may remain anonymous.
-- Counseling is delivered by licensed therapists (in-person or virtual), free of charge.
+- Counseling is delivered by qualified professionals (in-person or virtual). Details of therapist credentials and any fees/sliding scale will be published when the service launches.
 - Volunteers complete a 40-hour training program (active listening, empathy techniques, crisis protocols, self-care) and are mentored by experienced listeners.
-- Contact: email listeninnfoundation@gmail.com (replies within 24 hours), the 1-800-LISTEN-IN helpline, or the website Contact page.
+- Contact: the Connect form on the website, email listeninnfoundation@gmail.com (replies within 24 hours), or a message to @listeninnfoundation on Instagram.
 
 WAYS TO HELP (all available inside this chat)
 - Register as a Volunteer.
@@ -675,8 +674,8 @@ export async function chatWithAI(userMessage: string, context: string, language:
 SCOPE — READ CAREFULLY:
 - You ONLY discuss ListenInn Foundation: its mission, programs/services, helpline, volunteering, donations, feedback, contact details, and general mental-health encouragement in the context of ListenInn's support.
 - If the user asks about anything unrelated (general knowledge, trivia, coding, homework, news, math, other organisations, etc.), do NOT answer it. Politely decline in ONE sentence and steer them back — e.g. "I'm ListenInn's assistant, so I can only help with our foundation and mental-health support — is there something about that I can help with?"
-- Never invent facts, phone numbers, prices, statistics, staff names, or policies. If something isn't in the knowledge base below, say you don't have that detail and point them to the helpline (1-800-LISTEN-IN) or listeninnfoundation@gmail.com.
-- Do NOT provide medical diagnoses or medical advice. If the user seems in distress or at risk, gently and immediately guide them to the 24/7 helpline (1-800-LISTEN-IN).
+- Never invent facts, phone numbers, prices, statistics, staff names, or policies. There is NO public helpline phone number yet — never state or guess one. If something isn't in the knowledge base below, say you don't have that detail and point them to the Connect form or listeninnfoundation@gmail.com.
+- Do NOT provide medical diagnoses or medical advice. If the user seems in distress or at risk, gently guide them to share their story through the Connect form or email listeninnfoundation@gmail.com, and to contact local emergency services if they are in immediate danger.
 
 KNOWLEDGE BASE (your only source of truth):
 ${buildKnowledgeBase()}
@@ -720,21 +719,21 @@ export async function testGeminiConnection(key: string): Promise<boolean> {
 
 const FAQ_MAP: [RegExp, string][] = [
   [/(?:what|tell).*(listeninn|listen inn|foundation)/i, "ListenInn Foundation is an NGO dedicated to providing free, confidential mental health support. We offer a 24/7 helpline, 1:1 counseling, peer support groups, youth wellbeing programs, and crisis care. Every service is completely free. 💜"],
-  [/(?:helpline|phone|call|crisis)/i, "Our helpline is available 24/7 at 1-800-LISTEN-IN. Trained listeners are always ready to talk. You don't have to carry it alone. 📞"],
+  [/(?:helpline|phone|call|crisis)/i, "We're setting up a dedicated helpline number — it isn't live just yet. Right now the surest way to reach a listener is to share your story through our Connect form or email listeninnfoundation@gmail.com. If you're in immediate danger, please contact your local emergency services. You don't have to carry it alone. 💜"],
   [/(?:free|cost|charge|pay|price)/i, "All our services are 100% free. We believe mental health support should be accessible to everyone regardless of financial situation. Your generosity through donations helps us keep it that way. 💛"],
   [/(?:confidential|private|secret|anonymous)/i, "Absolutely. All conversations are completely confidential. We follow strict privacy protocols and you can remain anonymous if you prefer. Your trust means everything to us. 🔒"],
   [/(?:volunteer|join|sign up|apply)/i, "We'd love to have you! Our volunteer program includes a 40-hour training in active listening, empathy techniques, and crisis protocols. You can apply right here in this chat — just click 'Register as Volunteer' below! 🤝"],
   [/(?:donate|donation|money|fund|support financially)/i, "Every rupee makes a difference! ₹500 funds one free counseling session, ₹2,000 keeps our helpline running for a full day, and ₹10,000 funds 10 sessions. You can donate right here in this chat! 💝"],
-  [/(?:counsel|therapy|therapist)/i, "We offer free 1:1 counseling sessions with licensed therapists. Sessions are confidential and tailored to your needs. Contact us through the helpline or our contact page to schedule. 🌿"],
+  [/(?:counsel|therapy|therapist)/i, "We're building a 1:1 counseling service with qualified professionals. Details on credentials and any fees (including a sliding scale) will be published when it launches. To register your interest, share your story through our Connect form or email listeninnfoundation@gmail.com. 🌿"],
   [/(?:support group|peer|circle)/i, "Our weekly peer support circles bring people together who share similar experiences — grief, anxiety, depression, and more. It's a safe space where you're never alone. 🤗"],
   [/(?:youth|teen|young|school|student)/i, "Our Youth Wellbeing program creates safe spaces for young people. We run workshops in schools and communities, teaching emotional resilience and breaking the stigma around mental health. 🌱"],
-  [/(?:hour|when|time|available|open)/i, "Our helpline is available 24 hours a day, 7 days a week. Chat support runs Mon–Sun from 8am to 11pm. We're here whenever you need us. 🕐"],
+  [/(?:hour|when|time|available|open)/i, "You can share your story through our Connect form or email us anytime — we aim to reply within 24 hours. Our assistant here is available around the clock too. We're here whenever you need us. 🕐"],
   [/(?:train|learning|program)/i, "Our 40-hour volunteer training program covers active listening, empathy techniques, crisis protocols, and self-care. You'll be mentored by experienced listeners throughout. 📚"],
   [/(?:mission|purpose|goal|why)/i, "Our mission is to ensure no one navigates their mental health journey alone. We provide free, compassionate, confidential support regardless of background, income, or circumstance. Because healing starts with being heard. 🎯"],
-  [/(?:contact|reach|email|get in touch)/i, "You can reach us at listeninnfoundation@gmail.com, call our helpline at 1-800-LISTEN-IN, or visit our Contact page on the website. We reply to emails within 24 hours. 📧"],
+  [/(?:contact|reach|email|get in touch)/i, "You can reach us by sharing your story through our Connect form, emailing listeninnfoundation@gmail.com, or messaging @listeninnfoundation on Instagram. We reply to emails within 24 hours. 📧"],
   [/(?:hi|hello|hey|good morning|good evening)/i, "Hello! 👋 Welcome to ListenInn Foundation. I'm here to help you learn about our programs, register as a volunteer, make a donation, or answer any questions. How can I assist you today?"],
   [/(?:thank|thanks|appreciate)/i, "You're so welcome! 💜 Remember, we're always here for you. Is there anything else I can help with?"],
-  [/(?:sad|depressed|anxious|scared|lonely|hurt|pain|suicid)/i, "I hear you, and I want you to know that your feelings are valid. 💜 Please reach out to our 24/7 helpline at 1-800-LISTEN-IN — a trained listener is waiting to talk with you right now. You don't have to go through this alone."],
+  [/(?:sad|depressed|anxious|scared|lonely|hurt|pain|suicid)/i, "I hear you, and I want you to know that your feelings are valid. 💜 Please reach out to us by sharing your story through our Connect form or emailing listeninnfoundation@gmail.com — a member of our team will read it with care. If you're in immediate danger, please contact your local emergency services. You don't have to go through this alone."],
 ];
 
 function chatLocalFallback(msg: string, language: string): string {
@@ -757,7 +756,7 @@ function chatLocalFallback(msg: string, language: string): string {
 
 export const PROGRAMS_INFO = [
   { title: "24/7 Helpline", icon: "📞", desc: "Speak with a trained listener anytime, day or night. Our helpline is staffed by compassionate volunteers who have completed 40+ hours of active listening training. Completely confidential and free." },
-  { title: "1:1 Counseling", icon: "💬", desc: "Connect with licensed therapists for personalised sessions tailored to your needs. We offer both in-person and virtual sessions. All counseling is free of charge." },
+  { title: "1:1 Counseling", icon: "💬", desc: "Personalised one-on-one sessions with qualified professionals, tailored to your needs. Both in-person and virtual sessions are planned. Therapist credentials and any fees, including a sliding scale, will be shared when the service launches." },
   { title: "Peer Support Groups", icon: "🤗", desc: "Weekly circles where people navigating similar challenges — grief, anxiety, depression — come together in a safe, judgment-free space. You're never alone." },
   { title: "Listening Sessions", icon: "👂", desc: "Sometimes you just need to be heard. Our one-on-one listening sessions provide a confidential space where you can express yourself freely without judgment." },
   { title: "Youth Wellbeing", icon: "🌱", desc: "Safe spaces for teens and young adults. We run interactive workshops in schools and communities, teaching emotional resilience, coping skills, and breaking the mental health stigma." },

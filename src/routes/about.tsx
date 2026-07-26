@@ -3,6 +3,7 @@ import { PageShell } from "@/components/layout";
 import { Heart, Ear, Shield, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
+import { ReadingCircleArt, LeafyVine } from "@/components/artwork";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -35,6 +36,9 @@ function AboutPage() {
             everyone. We believe that healing often starts with one honest conversation — without
             judgment, without pressure, and without cost.
           </p>
+          <div className="text-accent flex justify-center pt-2">
+            <LeafyVine className="h-10 w-72 max-w-full" />
+          </div>
         </div>
       </section>
 
@@ -67,6 +71,9 @@ function AboutPage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
               From a single conversation to a movement
             </h2>
+            <div className="text-accent flex justify-center pt-2">
+              <ReadingCircleArt className="w-full max-w-sm h-auto" />
+            </div>
           </div>
           <div className="prose prose-lg max-w-none text-muted-foreground space-y-6">
             <p className="leading-relaxed">
@@ -79,10 +86,10 @@ function AboutPage() {
               background or income, could access the power of being truly heard.
             </p>
             <p className="leading-relaxed">
-              What started as a small helpline has grown into a comprehensive support network
-              spanning trained volunteer listeners, licensed therapists, peer support groups, and
-              youth wellbeing programs. Every day, we show up for the quiet moments and the loud
-              ones.
+              What started as a small listening service is growing into a comprehensive support
+              network spanning trained volunteer listeners, qualified counseling professionals, peer
+              support groups, and youth wellbeing programs. Every day, we show up for the quiet
+              moments and the loud ones.
             </p>
           </div>
 
@@ -102,7 +109,7 @@ function AboutPage() {
               {
                 icon: Users,
                 title: "Our Community",
-                desc: "Over 120 trained listeners, dozens of licensed therapists, and thousands of community members who believe in the power of connection.",
+                desc: "Trained listeners, qualified counseling professionals, and a growing community of people who believe in the power of connection.",
               },
             ].map((item) => (
               <div
