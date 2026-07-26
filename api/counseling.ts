@@ -93,10 +93,18 @@ export default async function handler(req: any, res: any): Promise<void> {
     (req.query?.check ?? "") === "1" || String(req.url ?? "").includes("check=1");
   if (req.method === "GET" && wantsCheck) {
     res.setHeader("Cache-Control", "no-store");
+    // Report NAMES only (never values) of any SUPABASE_* / KV_* / ADMIN_* vars
+    // the server can see, plus the length of the resolved key, to diagnose
+    // naming/scoping issues without leaking secrets.
+    const relatedNames = Object.keys(process.env)
+      .filter((k) => /SUPABASE|KV_|ADMIN|SERVICE_ROLE|UPSTASH/i.test(k))
+      .sort();
     res.status(200).json({
       supabaseUrlSet: Boolean(SUPABASE_URL),
       supabaseKeySet: Boolean(SERVICE_KEY),
+      supabaseKeyLength: SERVICE_KEY.length,
       adminPasswordSet: Boolean(process.env.ADMIN_PANEL_PASSWORD),
+      relatedEnvNames: relatedNames,
     });
     return;
   }
