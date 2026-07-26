@@ -100,13 +100,14 @@ function exportCSV(headers: string[], rows: (string | number)[][], filename: str
 
 // The admin password is validated SERVER-SIDE against the ADMIN_PANEL_PASSWORD
 // env var (via /api/admin-auth), the same secret used to authorise publishing.
-// Nothing meaningful is hardcoded here.
+// Nothing is hardcoded here.
 //
 // DEV FALLBACK ONLY: when the /api function isn't running (e.g. `vite dev`
 // locally, where serverless functions aren't served), the endpoint replies 503
-// / is unreachable, and we fall back to this local check so local development
-// still works. On the deployed site the server password is authoritative.
-const DEV_FALLBACK_PASSWORD = "listeninn@admin2025";
+// / is unreachable. In that case we compare against VITE_DEV_ADMIN_PASSWORD —
+// a value you set in your local .env.local, NEVER committed. If it's unset
+// (as in every production build), the dev fallback authenticates no one.
+const DEV_FALLBACK_PASSWORD = import.meta.env.VITE_DEV_ADMIN_PASSWORD ?? "";
 const SESSION_KEY = "listeninn_admin_auth";
 const ADMIN_PWD_KEY = "listeninn_admin_pwd";
 const RATE_LIMIT_KEY = "listeninn_admin_rate";
@@ -130,7 +131,9 @@ async function verifyAdminPassword(pwd: string): Promise<boolean> {
   } catch {
     // Network error (endpoint not running locally) → dev fallback.
   }
-  return pwd === DEV_FALLBACK_PASSWORD;
+  // Dev fallback: only valid when a non-empty VITE_DEV_ADMIN_PASSWORD is set
+  // locally. Empty (production / unconfigured) never authenticates.
+  return DEV_FALLBACK_PASSWORD.length > 0 && pwd === DEV_FALLBACK_PASSWORD;
 }
 
 interface RateState { attempts: number; lockedUntil: number; }
