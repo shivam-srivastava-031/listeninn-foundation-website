@@ -3,7 +3,8 @@ import { PageShell } from "@/components/layout";
 import { Heart, Ear, Shield, Users, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { ReadingCircleArt, LeafyVine } from "@/components/artwork";
+import { LeafyVine } from "@/components/artwork";
+import readingCircleArt from "@/assets/artwork/reading-circle.jpeg";
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -71,8 +72,12 @@ function AboutPage() {
             <h2 className="text-3xl md:text-4xl font-bold tracking-tight">
               From a single conversation to a movement
             </h2>
-            <div className="text-accent flex justify-center pt-2">
-              <ReadingCircleArt className="w-full max-w-sm h-auto" />
+            <div className="flex justify-center pt-2">
+              <img
+                src={readingCircleArt}
+                alt="Soft watercolour illustration of people reading together in a circle"
+                className="w-full max-w-lg h-auto rounded-2xl"
+              />
             </div>
           </div>
           <div className="prose prose-lg max-w-none text-muted-foreground space-y-6">

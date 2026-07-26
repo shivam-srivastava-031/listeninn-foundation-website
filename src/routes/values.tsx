@@ -3,7 +3,7 @@ import { PageShell } from "@/components/layout";
 import { Ear, Heart, Shield, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "@tanstack/react-router";
-import { BalanceVineArt } from "@/components/artwork";
+import balanceArt from "@/assets/artwork/balance-in-bloom.jpeg";
 
 export const Route = createFileRoute("/values")({
   head: () => ({
@@ -58,8 +58,12 @@ function ValuesPage() {
             These aren't just words on a wall — they shape every conversation, every decision, every
             interaction.
           </p>
-          <div className="text-primary flex justify-center pt-4">
-            <BalanceVineArt className="w-full max-w-xs h-auto" />
+          <div className="flex justify-center pt-4">
+            <img
+              src={balanceArt}
+              alt="Hand-drawn illustration of a vine-wrapped balance scale, symbolising fairness and care held in equilibrium"
+              className="w-full max-w-sm h-auto rounded-2xl"
+            />
           </div>
         </div>
       </section>

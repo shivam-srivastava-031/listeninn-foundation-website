@@ -1,10 +1,11 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import logo from "@/assets/listeninn-logo.png";
 import welcomeArt from "@/assets/listeninn-welcome.jpeg";
+import communityCareArt from "@/assets/artwork/community-care.jpeg";
 import { PageShell, WaveTop } from "@/components/layout";
 import { Button } from "@/components/ui/button";
 import { SERVICES } from "@/lib/services";
-import { CommunityCareArt, LeafyVine } from "@/components/artwork";
+import { LeafyVine } from "@/components/artwork";
 import {
   Heart,
   Ear,
@@ -525,8 +526,12 @@ function CommunityCareBand() {
     <section className="bg-card py-20 overflow-hidden">
       <div className="container mx-auto px-6 max-w-5xl">
         <div className="grid md:grid-cols-2 gap-10 items-center">
-          <div className="text-primary flex justify-center">
-            <CommunityCareArt className="w-full max-w-md h-auto" />
+          <div className="flex justify-center">
+            <img
+              src={communityCareArt}
+              alt="Hand-drawn illustration of three people holding hands beneath a banner reading 'Community care for all who need it'"
+              className="w-full max-w-md h-auto rounded-2xl"
+            />
           </div>
           <div className="space-y-5 text-center md:text-left">
             <p className="font-script text-3xl text-primary">Community care</p>
