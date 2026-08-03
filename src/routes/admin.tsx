@@ -74,6 +74,7 @@ const TABS: { key: Tab; label: string; icon: any }[] = [
   { key: "brain", label: "NGO Brain", icon: Database },
   { key: "connect", label: "Connect Forms", icon: Heart },
   { key: "content", label: "Counseling Page", icon: Edit3 },
+  { key: "engagement", label: "Social Engagement", icon: MessageCircle },
   { key: "settings", label: "Settings", icon: Settings },
 ];
 
@@ -353,10 +354,150 @@ function AdminDashboard({ onLock }: { onLock: () => void }) {
           {tab === "brain" && <NGOBrainPanel db={db} />}
           {tab === "connect" && <ConnectPanel />}
           {tab === "content" && <ContentPanel />}
+          {tab === "engagement" && <EngagementPanel />}
           {tab === "settings" && <SettingsPanel db={db} />}
         </div>
       </section>
     </PageShell>
+  );
+}
+
+// ━━━━━━━━━━━━━━━━━━━ ENGAGEMENT PANEL ━━━━━━━━━━━━━━━━━━━
+
+function EngagementPanel() {
+  const [posts, setPosts] = useState<any[]>([]);
+  const [members, setMembers] = useState<any[]>([]);
+  const [events, setEvents] = useState<any[]>([]);
+  const [jobs, setJobs] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchEngagementData = async () => {
+    setLoading(true);
+    try {
+      // For now we mock the data since Supabase might not be fully configured on client
+      // Normally you'd fetch from your backend or direct Supabase client
+      setPosts([
+        { id: "1", platform: "linkedin", url: "https://linkedin.com/post/123", status: "SENT", created_at: new Date().toISOString(), content: "Great news about our foundation!" }
+      ]);
+      setMembers([
+        { id: "1", slack_user_id: "U123", name: "Alice", persona: "Active" }
+      ]);
+      setEvents([
+        { post_id: "1", member_id: "1", type: "LIKE" }
+      ]);
+      setJobs([
+        { post_id: "1", status: "SENT", attempts: 1, started_at: new Date().toISOString() }
+      ]);
+    } catch (e) {
+      console.error(e);
+      toast.error("Failed to load engagement data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchEngagementData();
+  }, []);
+
+  if (loading) {
+    return <div className="p-12 text-center text-muted-foreground"><Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" />Loading Engagement Data...</div>;
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <MessageCircle className="h-5 w-5 text-blue-500" />
+            Social Engagement
+          </h2>
+          <p className="text-sm text-muted-foreground mt-0.5">Manage Slack-based social engagement.</p>
+        </div>
+        <Button onClick={fetchEngagementData} variant="outline"><RefreshCw className="h-4 w-4 mr-2" />Refresh</Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        {/* Ledger */}
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden p-5">
+          <h3 className="font-semibold mb-4">Post Ledger</h3>
+          {posts.length === 0 ? <p className="text-sm text-muted-foreground">No posts tracked yet.</p> : (
+            <div className="space-y-3">
+              {posts.map(p => (
+                <div key={p.id} className="p-3 border rounded-lg">
+                  <div className="flex justify-between items-start mb-2">
+                    <Badge>{p.platform}</Badge>
+                    <Badge variant="outline">{p.status}</Badge>
+                  </div>
+                  <a href={p.url} target="_blank" className="text-sm text-blue-600 hover:underline break-all">{p.url}</a>
+                  <p className="text-xs text-muted-foreground mt-2 truncate">{p.content}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* Engagement Grid */}
+        <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden p-5">
+          <h3 className="font-semibold mb-4">Engagement Grid (Latest Post)</h3>
+          {posts.length === 0 ? <p className="text-sm text-muted-foreground">No posts tracked yet.</p> : (
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b text-left text-muted-foreground">
+                  <th className="pb-2">Member</th>
+                  <th className="pb-2">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                {members.map(m => {
+                  const mEvents = events.filter(e => e.member_id === m.id && e.post_id === posts[0].id);
+                  const engaged = mEvents.length > 0;
+                  return (
+                    <tr key={m.id} className="border-b last:border-0">
+                      <td className="py-2">{m.name}</td>
+                      <td className="py-2">
+                        {engaged ? (
+                          <div className="flex gap-1">
+                            {mEvents.map(e => <Badge key={e.type} variant="secondary" className="text-[10px]">{e.type}</Badge>)}
+                          </div>
+                        ) : <span className="text-xs text-red-500">Pending</span>}
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      </div>
+      
+      {/* Observability */}
+      <div className="rounded-2xl border border-border bg-card shadow-card overflow-hidden p-5 mt-6">
+        <h3 className="font-semibold mb-4 flex items-center gap-2"><Activity className="h-4 w-4" /> Observability Logs</h3>
+        {jobs.length === 0 ? <p className="text-sm text-muted-foreground">No jobs logged.</p> : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="border-b text-left text-muted-foreground">
+                <th className="pb-2">Post ID</th>
+                <th className="pb-2">Status</th>
+                <th className="pb-2">Attempts</th>
+                <th className="pb-2">Time</th>
+              </tr>
+            </thead>
+            <tbody>
+              {jobs.map((j, i) => (
+                <tr key={i} className="border-b last:border-0">
+                  <td className="py-2 text-xs font-mono truncate max-w-[100px]">{j.post_id}</td>
+                  <td className="py-2"><Badge variant="outline">{j.status}</Badge></td>
+                  <td className="py-2 text-xs">{j.attempts}</td>
+                  <td className="py-2 text-xs">{new Date(j.started_at).toLocaleString()}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </div>
   );
 }
 
